@@ -12,6 +12,12 @@ const isLikelyCommand = (text: string) => {
   return text && /[a-zA-Z0-9\-_/]+/.test(text) && !/[а-яА-Я]/.test(text) && text.length < 120;
 };
 
+const modelOptions = [
+  { value: 'gpt-4o-mini', label: 'gpt-4o-mini' },
+  { value: 'qwen-2.5-coder-32b', label: 'qwen-2.5-coder-32b' },
+  { value: 'deepseek-r1', label: 'deepseek-r1' },
+];
+
 const Terminal: React.FC = () => {
   const [history, setHistory] = useState<
     { prompt: string; response: string; runResult?: { stdout: string; stderr: string; returncode: number } | null }[]
@@ -23,6 +29,7 @@ const Terminal: React.FC = () => {
   const [runError, setRunError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [model, setModel] = useState('gpt-4o-mini');
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,7 +44,7 @@ const Terminal: React.FC = () => {
       const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, model }),
       });
       const data = await res.json();
       setHistory((h) => [...h, { prompt, response: data.response || data.error || 'Ошибка' }]);
@@ -101,6 +108,19 @@ const Terminal: React.FC = () => {
       padding: 0,
       margin: 0,
     }}>
+      {/* Выбор модели */}
+      <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '18px 0 0 0', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <span style={{ color: '#7dd3fc', fontWeight: 600, fontSize: 15 }}>Модель:</span>
+        <select
+          value={model}
+          onChange={e => setModel(e.target.value)}
+          style={{ background: '#232526', color: '#e5e5e5', border: '1.5px solid #23272a', borderRadius: 6, fontSize: 15, padding: '6px 14px', fontFamily: 'monospace', fontWeight: 600 }}
+        >
+          {modelOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
       {/* История */}
       <div style={{
         flex: 1,

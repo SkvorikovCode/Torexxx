@@ -1,10 +1,9 @@
 import g4f
 from typing import List, Dict, Optional
 
-def ask_gpt4free(prompt: str = '', messages: Optional[List[Dict]] = None) -> str:
+def ask_gpt4free(prompt: str = '', messages: Optional[List[Dict]] = None, model: str = 'gpt-4o-mini') -> str:
     try:
         # model = "qwen-2.5-coder-32b" # Если нужно писать код
-        model = "gpt-4o-mini" # Основа
         if messages is None:
             messages = [{"role": "user", "content": prompt}]
         response = g4f.ChatCompletion.create(
