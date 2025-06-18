@@ -7,6 +7,8 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import DiamondIcon from '@mui/icons-material/Diamond';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import StarIcon from '@mui/icons-material/Star';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -15,9 +17,13 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
 const API_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
+
+const HISTORY_KEY = 'terminal_history';
+const FAVORITES_KEY = 'terminal_favorites';
 
 const isLikelyCommand = (text: string) => {
   if (!text) return false;
@@ -40,6 +46,9 @@ const Terminal: React.FC = () => {
   const [history, setHistory] = useState<
     { prompt: string; response: string; runResult?: { stdout: string; stderr: string; returncode: number } | null }[]
   >([]);
+  const [favorites, setFavorites] = useState<
+    { prompt: string; response: string }[]
+  >([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [runIdx, setRunIdx] = useState<number | null>(null); // индекс для модалки
@@ -54,6 +63,9 @@ const Terminal: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const [showLogin, setShowLogin] = useState(false);
+  const [mode, setMode] = useState<'terminal' | 'chat'>('terminal');
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -61,7 +73,20 @@ const Terminal: React.FC = () => {
     fetch('http://127.0.0.1:8000/cwd')
       .then(r => r.json())
       .then(data => setCwd(data.cwd || ''));
+    // Загрузка истории и избранного из localStorage при монтировании
+    const savedHistory = localStorage.getItem(HISTORY_KEY);
+    if (savedHistory) setHistory(JSON.parse(savedHistory));
+    const savedFav = localStorage.getItem(FAVORITES_KEY);
+    if (savedFav) setFavorites(JSON.parse(savedFav));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
   }, [history]);
+
+  useEffect(() => {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+  }, [favorites]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -77,14 +102,10 @@ const Terminal: React.FC = () => {
           body: JSON.stringify({ command: prompt }),
         });
         const data = await res.json();
-        setHistory((h) => [
-          ...h,
-          {
-            prompt,
-            response: prompt,
-            runResult: data,
-          },
-        ]);
+        setHistory((h) => {
+          const newHistory = [...h, { prompt, response: prompt, runResult: data }];
+          return newHistory.slice(-10);
+        });
         if (data.cwd) setCwd(data.cwd);
       } else {
         // AI режим
@@ -94,10 +115,16 @@ const Terminal: React.FC = () => {
           body: JSON.stringify({ prompt, model }),
         });
         const data = await res.json();
-        setHistory((h) => [...h, { prompt, response: data.response || data.error || 'Ошибка' }]);
+        setHistory((h) => {
+          const newHistory = [...h, { prompt, response: data.response || data.error || 'Ошибка' }];
+          return newHistory.slice(-10);
+        });
       }
     } catch {
-      setHistory((h) => [...h, { prompt, response: 'Ошибка соединения с backend' }]);
+      setHistory((h) => {
+        const newHistory = [...h, { prompt, response: 'Ошибка соединения с backend' }];
+        return newHistory.slice(-10);
+      });
     }
     setLoading(false);
   };
@@ -153,6 +180,177 @@ const Terminal: React.FC = () => {
     setAnchorEl(null);
   };
 
+  const isFavorite = (item: { prompt: string; response: string }) => {
+    return favorites.some(f => f.prompt === item.prompt && f.response === item.response);
+  };
+
+  const handleToggleFavorite = (item: { prompt: string; response: string }) => {
+    if (isFavorite(item)) {
+      setFavorites(favs => favs.filter(f => !(f.prompt === item.prompt && f.response === item.response)));
+    } else {
+      setFavorites(favs => [...favs, { prompt: item.prompt, response: item.response }]);
+    }
+  };
+
+  const handleRunFavorite = (item: { prompt: string; response: string }) => {
+    setInput(item.response);
+    setManualMode(true);
+    inputRef.current?.focus();
+  };
+
+  // Функция отправки сообщения в чат
+  function handleChatSend() {
+    if (!chatInput.trim()) return;
+    const userMsg = { role: 'user' as const, text: chatInput };
+    setChatHistory(h => [...h, userMsg]);
+    setChatInput('');
+    // Отправка запроса к AI (используем API_URL, model)
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: userMsg.text, model }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        setChatHistory(h => [...h, { role: 'ai', text: data.response || data.error || 'Ошибка' }]);
+      })
+      .catch(() => {
+        setChatHistory(h => [...h, { role: 'ai', text: 'Ошибка соединения с backend' }]);
+      });
+  }
+
+  if (mode === 'chat') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        width: '100vw',
+        background: 'linear-gradient(135deg, #18181b 0%, #232526 100%)',
+        color: '#e5e5e5',
+        fontFamily: 'monospace',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: 0,
+        margin: 0,
+      }}>
+        {/* Верхняя панель с кнопкой возврата */}
+        <div style={{ position: 'absolute', top: 18, left: 32, zIndex: 110, display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Button
+            variant="text"
+            aria-label="Back to terminal"
+            onClick={() => setMode('terminal')}
+            style={{
+              minWidth: 0,
+              minHeight: 0,
+              padding: 0,
+              borderRadius: '50%',
+              background: 'rgba(36,37,46,0.18)',
+              border: '1.5px solid #23272a',
+              color: '#7dd3fc',
+              boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background 0.18s, border 0.18s',
+            }}
+            onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+            onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
+          >
+            <TerminalOutlinedIcon style={{ fontSize: 22, color: '#7dd3fc' }} />
+          </Button>
+          <span style={{ fontWeight: 700, fontSize: 20, color: '#7dd3fc', letterSpacing: 1 }}>Чат с нейросетью</span>
+        </div>
+        {/* История чата */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '80px 0 0 0',
+          width: '100%',
+          maxWidth: 700,
+          margin: '0 auto',
+          transition: 'background 0.3s',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          {chatHistory.length === 0 && (
+            <div style={{ color: '#bfc7d5', opacity: 0.7, textAlign: 'center', marginTop: 60, fontSize: 18 }}>Начните диалог с нейросетью…</div>
+          )}
+          {chatHistory.map((msg, idx) => (
+            <div key={idx} style={{
+              margin: '12px 0',
+              display: 'flex',
+              justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
+            }}>
+              <div style={{
+                background: msg.role === 'user' ? 'rgba(125,211,252,0.12)' : 'rgba(163,230,53,0.10)',
+                color: msg.role === 'user' ? '#7dd3fc' : '#a3e635',
+                borderRadius: 10,
+                padding: '10px 18px',
+                maxWidth: 420,
+                fontSize: 16,
+                fontWeight: 500,
+                boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap',
+              }}>{msg.text}</div>
+            </div>
+          ))}
+        </div>
+        {/* Ввод чата */}
+        <div style={{
+          display: 'flex',
+          borderTop: '1.5px solid #23272a',
+          padding: 22,
+          background: 'rgba(24,24,27,0.92)',
+          width: '100%',
+          maxWidth: 700,
+          margin: '0 auto',
+          boxSizing: 'border-box',
+        }}>
+          <input
+            type="text"
+            value={chatInput}
+            onChange={e => setChatInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && chatInput.trim()) handleChatSend(); }}
+            style={{
+              flex: 1,
+              background: 'rgba(24,24,27,0.92)',
+              border: '1.5px solid #23272a',
+              outline: 'none',
+              color: '#e5e5e5',
+              fontSize: 18,
+              fontFamily: 'monospace',
+              borderRadius: 8,
+              padding: '8px 14px',
+              boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+              transition: 'border 0.2s, box-shadow 0.2s',
+              minWidth: 0,
+            }}
+            autoFocus
+            placeholder={'Введите сообщение...'}
+          />
+          <button
+            onClick={handleChatSend}
+            disabled={!chatInput.trim()}
+            style={{
+              marginLeft: 12,
+              background: '#7dd3fc',
+              color: '#232526',
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 22px',
+              fontWeight: 700,
+              fontSize: 16,
+              cursor: chatInput.trim() ? 'pointer' : 'not-allowed',
+              boxShadow: '0 1px 4px 0 rgba(125,211,252,0.12)',
+              transition: 'background 0.18s, color 0.18s',
+            }}
+          >Отправить</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -200,16 +398,36 @@ const Terminal: React.FC = () => {
             style: {
               background: '#232526',
               color: '#e5e5e5',
-              minWidth: 120,
-              borderRadius: 10,
-              boxShadow: '0 4px 24px 0 rgba(31,38,135,0.18)',
+              minWidth: 160,
+              borderRadius: 14,
+              boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)',
               fontFamily: 'monospace',
-              fontSize: 15,
+              fontSize: 16,
+              padding: '8px 0',
+              animation: open ? 'fadeInMenu 0.25s' : undefined,
             },
           }}
         >
-          <MenuItem onClick={() => { handleMenuClose(); setShowLogin(true); }} style={{ color: '#7dd3fc', fontWeight: 600 }}>
-            Sign in
+          <MenuItem
+            onClick={() => { handleMenuClose(); setShowLogin(true); }}
+            style={{
+              color: '#7dd3fc',
+              fontWeight: 700,
+              borderRadius: 10,
+              margin: '4px 12px',
+              padding: '12px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              fontSize: 17,
+              background: 'rgba(36,37,46,0.12)',
+              transition: 'background 0.18s, color 0.18s',
+            }}
+            onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+            onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.12)')}
+          >
+            <AccountCircleIcon style={{ color: '#7dd3fc', fontSize: 22, marginRight: 2 }} />
+            <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Sign in</span>
           </MenuItem>
         </Menu>
       </div>
@@ -361,7 +579,60 @@ const Terminal: React.FC = () => {
             </div>
           )}
         </div>
+        {/* Кнопка чата */}
+        <button
+          onClick={() => setMode('chat')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(36,37,46,0.18)',
+            border: '1.5px solid #23272a',
+            borderRadius: '50%',
+            width: 38,
+            height: 38,
+            marginLeft: 6,
+            color: '#7dd3fc',
+            transition: 'background 0.18s, border 0.18s, color 0.18s',
+            boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+            textDecoration: 'none',
+            fontSize: 0,
+            cursor: 'pointer',
+          }}
+          title="Чат с нейросетью"
+          onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+          onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
+        >
+          <ChatBubbleOutlineIcon style={{ fontSize: 22, color: '#7dd3fc' }} />
+        </button>
       </div>
+      {/* Избранные команды */}
+      {favorites.length > 0 && (
+        <div style={{
+          maxWidth: 900,
+          margin: '24px auto 0 auto',
+          background: 'rgba(36,37,46,0.22)',
+          borderRadius: 10,
+          padding: '14px 24px',
+          boxShadow: '0 1px 4px 0 rgba(125,211,252,0.08)',
+          color: '#facc15',
+          fontFamily: 'monospace',
+          fontSize: 15,
+        }}>
+          <div style={{ fontWeight: 700, marginBottom: 8, color: '#facc15', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <StarIcon style={{ color: '#facc15', fontSize: 20 }} /> Избранные команды
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {favorites.map((fav, idx) => (
+              <div key={idx} style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid #facc15', borderRadius: 7, padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: '#facc15', fontWeight: 600 }}>{fav.response}</span>
+                <button onClick={() => handleRunFavorite(fav)} style={{ background: 'none', border: 'none', color: '#a3e635', cursor: 'pointer', fontWeight: 700, fontSize: 15, marginLeft: 6 }}>Запустить</button>
+                <button onClick={() => handleToggleFavorite(fav)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 18, marginLeft: 2 }} title="Удалить из избранного"><StarIcon /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* История */}
       <div style={{
         flex: 1,
@@ -387,6 +658,9 @@ const Terminal: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', color: '#7dd3fc', fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
               <ChevronRightIcon style={{ fontSize: 18, marginRight: 2, color: '#7dd3fc' }} />
               <span style={{ color: '#bfc7d5', fontWeight: 400 }}>{item.prompt}</span>
+              <button onClick={() => handleToggleFavorite(item)} style={{ background: 'none', border: 'none', marginLeft: 8, cursor: 'pointer' }} title={isFavorite(item) ? 'Убрать из избранного' : 'В избранное'}>
+                {isFavorite(item) ? <StarIcon style={{ color: '#facc15', fontSize: 18 }} /> : <StarBorderIcon style={{ color: '#bfc7d5', fontSize: 18 }} />}
+              </button>
             </div>
             <div style={{ color: '#a3e635', whiteSpace: 'pre-wrap', marginLeft: 16, display: 'flex', alignItems: 'center', fontSize: 16, fontWeight: 500 }}>
               <span>{item.response}</span>
@@ -611,6 +885,10 @@ const Terminal: React.FC = () => {
         @keyframes premium-gradient-anim {
           0% { background-position: 0% 50%; }
           100% { background-position: 100% 50%; }
+        }
+        @keyframes fadeInMenu {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         @media (max-width: 700px) {
           div[style*='maxWidth: 900px'] {
