@@ -14,14 +14,14 @@ const isLikelyCommand = (text: string) => {
 };
 
 const modelOptions = [
-  // { value: 'gpt-4o-mini', label: 'OpenAI 4o mini' },
-  { value: 'qwen-2.5-coder-32b', label: 'qwen-2.5-coder-32b' },
-  { value: 'deepseek-r1', label: 'deepseek-r1' },
-  { value: 'llama-3.3-70b', label: 'llama-3.3-70b' },
-  { value: 'phi-3-mini', label: 'phi-3-mini' },
-  { value: 'gemini-1.5-pro', label: 'gemini-1.5-pro' },
-  { value: 'gpt-4.1-mini', label: 'OpenAI 4.1' },
-  { value: 'gpt-4o', label: 'OpenAI 4o' },
+  { value: 'qwen-2.5-coder-32b', label: 'qwen-2.5-coder-32b', premium: true },
+  // { value: 'deepseek-r1', label: 'deepseek-r1' },
+  { value: 'llama-3.3-70b', label: 'llama-3.3-70b', premium: true },
+  // { value: 'phi-3-mini', label: 'phi-3-mini' }, // Не работает
+  { value: 'gemini-1.5-pro', label: 'gemini-1.5-pro', premium: true },
+  { value: 'gpt-4.1-mini', label: 'GPT 4.1', premium: true },
+  { value: 'gpt-4o-mini', label: 'GPT 4o mini', premium: false },
+  { value: 'gpt-4o', label: 'GPT 4o', premium: true },
 ];
 
 const Terminal: React.FC = () => {
@@ -123,7 +123,9 @@ const Terminal: React.FC = () => {
           style={{ background: '#232526', color: '#e5e5e5', border: '1.5px solid #23272a', borderRadius: 6, fontSize: 15, padding: '6px 14px', fontFamily: 'monospace', fontWeight: 600 }}
         >
           {modelOptions.map(opt => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value} disabled={opt.premium}>
+              {opt.label} {opt.premium && '★ Премиум'}
+            </option>
           ))}
         </select>
       </div>
@@ -147,6 +149,7 @@ const Terminal: React.FC = () => {
             boxShadow: 'none',
             padding: '0 24px',
             wordBreak: 'break-word',
+            transition: 'background 0.3s',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', color: '#7dd3fc', fontWeight: 600, fontSize: 15, marginBottom: 2 }}>
               <ChevronRightIcon style={{ fontSize: 18, marginRight: 2, color: '#7dd3fc' }} />
@@ -156,12 +159,17 @@ const Terminal: React.FC = () => {
               <span>{item.response}</span>
               {isLikelyCommand(item.response) && (
                 <button
-                  style={{ marginLeft: 14, background: 'rgba(125,211,252,0.12)', color: '#7dd3fc', border: '1px solid #7dd3fc', borderRadius: 6, padding: '3px 14px', fontSize: 15, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s, color 0.2s', display: 'flex', alignItems: 'center' }}
+                  style={{ marginLeft: 14, background: 'rgba(125,211,252,0.12)', color: '#7dd3fc', border: '1px solid #7dd3fc', borderRadius: 6, padding: '3px 14px', fontSize: 15, cursor: 'pointer', fontWeight: 600, transition: 'background 0.2s, color 0.2s', display: 'flex', alignItems: 'center', position: 'relative' }}
                   onClick={() => handleRun(idx)}
                   disabled={runLoading}
                   title="Выполнить команду в терминале"
                 >
-                  <PlayArrowIcon style={{ fontSize: 18, marginRight: 6 }} /> Выполнить
+                  {runLoading && runIdx === idx ? (
+                    <span className="loader" style={{ marginRight: 6, width: 16, height: 16, border: '2px solid #7dd3fc', borderTop: '2px solid transparent', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                  ) : (
+                    <PlayArrowIcon style={{ fontSize: 18, marginRight: 6 }} />
+                  )}
+                  Выполнить
                 </button>
               )}
             </div>
@@ -174,6 +182,13 @@ const Terminal: React.FC = () => {
             )}
           </div>
         ))}
+        {/* Анимация ожидания ответа */}
+        {loading && (
+          <div style={{ margin: '0 24px 18px 24px', minHeight: 32, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="blinking-cursor" style={{ width: 18, height: 18, background: '#7dd3fc', borderRadius: 4, opacity: 0.7, animation: 'blink 1s steps(2, start) infinite' }} />
+            <span style={{ color: '#bfc7d5', fontSize: 16, fontFamily: 'monospace', opacity: 0.7 }}>Жду ответа...</span>
+          </div>
+        )}
         <div ref={scrollRef} />
       </div>
       {/* Input */}
@@ -241,6 +256,15 @@ const Terminal: React.FC = () => {
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes blink {
+          0% { opacity: 0.7; }
+          50% { opacity: 0.1; }
+          100% { opacity: 0.7; }
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
         @media (max-width: 700px) {
           div[style*='maxWidth: 900px'] {
