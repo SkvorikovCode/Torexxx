@@ -7,6 +7,14 @@ import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import DiamondIcon from '@mui/icons-material/Diamond';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
 
 const API_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
@@ -43,6 +51,9 @@ const Terminal: React.FC = () => {
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [cwd, setCwd] = useState<string>('');
   const [manualMode, setManualMode] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -134,6 +145,14 @@ const Terminal: React.FC = () => {
     setTimeout(() => { inputRef.current?.focus(); }, 0);
   };
 
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -146,35 +165,54 @@ const Terminal: React.FC = () => {
       padding: 0,
       margin: 0,
     }}>
-      {/* Кнопка входа в левом верхнем углу */}
-      <button
-        style={{
-          position: 'absolute',
-          top: 18,
-          left: 32,
-          zIndex: 110,
-          width: 38,
-          height: 38,
-          borderRadius: '50%',
-          background: 'rgba(36,37,46,0.18)',
-          border: '1.5px solid #23272a',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          transition: 'background 0.18s, border 0.18s',
-          boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
-          color: '#7dd3fc',
-          outline: 'none',
-          padding: 0,
-        }}
-        title="Войти"
-        onClick={() => {/* TODO: login logic */}}
-        onMouseOver={e => e.currentTarget.style.background = 'rgba(125,211,252,0.10)'}
-        onMouseOut={e => e.currentTarget.style.background = 'rgba(36,37,46,0.18)'}
-      >
-        <AccountCircleIcon style={{ fontSize: 24, color: '#7dd3fc' }} />
-      </button>
+      {/* Кнопка входа теперь иконка-меню */}
+      <div style={{ position: 'absolute', top: 18, left: 32, zIndex: 110 }}>
+        <Button
+          variant="text"
+          aria-label="User menu"
+          onClick={handleMenuClick}
+          style={{
+            minWidth: 0,
+            minHeight: 0,
+            padding: 0,
+            borderRadius: '50%',
+            background: 'rgba(36,37,46,0.18)',
+            border: '1.5px solid #23272a',
+            color: '#7dd3fc',
+            boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.18s, border 0.18s',
+          }}
+          onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+          onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
+        >
+          <AccountCircleIcon style={{ fontSize: 24, color: '#7dd3fc' }} />
+        </Button>
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleMenuClose}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          PaperProps={{
+            style: {
+              background: '#232526',
+              color: '#e5e5e5',
+              minWidth: 120,
+              borderRadius: 10,
+              boxShadow: '0 4px 24px 0 rgba(31,38,135,0.18)',
+              fontFamily: 'monospace',
+              fontSize: 15,
+            },
+          }}
+        >
+          <MenuItem onClick={() => { handleMenuClose(); setShowLogin(true); }} style={{ color: '#7dd3fc', fontWeight: 600 }}>
+            Sign in
+          </MenuItem>
+        </Menu>
+      </div>
       {/* Выбор модели */}
       <div style={{
         position: 'absolute',
@@ -514,6 +552,47 @@ const Terminal: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Модальное окно входа */}
+      <Dialog open={showLogin} onClose={() => setShowLogin(false)} PaperProps={{
+        style: {
+          background: 'rgba(24,24,27,0.98)',
+          borderRadius: 14,
+          minWidth: 340,
+          boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)',
+          border: '1.5px solid rgba(120,120,140,0.18)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          color: '#e5e5e5',
+          fontFamily: 'monospace',
+        }
+      }}>
+        <DialogTitle style={{ color: '#7dd3fc', fontWeight: 700, fontSize: 22, textAlign: 'center', letterSpacing: 1 }}>Вход</DialogTitle>
+        <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 8 }}>
+          <TextField
+            autoFocus
+            label="Email"
+            type="email"
+            fullWidth
+            variant="outlined"
+            InputLabelProps={{ style: { color: '#bfc7d5', fontFamily: 'monospace' } }}
+            InputProps={{ style: { color: '#e5e5e5', fontFamily: 'monospace', background: 'rgba(36,37,46,0.18)' } }}
+          />
+          <TextField
+            label="Пароль"
+            type="password"
+            fullWidth
+            variant="outlined"
+            InputLabelProps={{ style: { color: '#bfc7d5', fontFamily: 'monospace' } }}
+            InputProps={{ style: { color: '#e5e5e5', fontFamily: 'monospace', background: 'rgba(36,37,46,0.18)' } }}
+          />
+        </DialogContent>
+        <DialogActions style={{ justifyContent: 'space-between', padding: '18px 24px 18px 24px' }}>
+          <Button onClick={() => setShowLogin(false)} style={{ color: '#7dd3fc', fontWeight: 600 }}>Отмена</Button>
+          <Button variant="contained" style={{ background: '#7dd3fc', color: '#232526', fontWeight: 700, borderRadius: 8, boxShadow: '0 1px 4px 0 rgba(125,211,252,0.12)' }} onClick={() => setShowLogin(false)}>
+            Войти
+          </Button>
+        </DialogActions>
+      </Dialog>
       {/* Адаптивные стили и анимация */}
       <style>{`
         @keyframes fadeIn {
