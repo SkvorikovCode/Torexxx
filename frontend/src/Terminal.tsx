@@ -3,8 +3,10 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CloseIcon from '@mui/icons-material/Close';
 import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import StarIcon from '@mui/icons-material/Star';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import DiamondIcon from '@mui/icons-material/Diamond';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const API_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
@@ -16,11 +18,11 @@ const isLikelyCommand = (text: string) => {
 };
 
 const modelOptions = [
-  { value: 'qwen-2.5-coder-32b', label: 'qwen-2.5-coder-32b', premium: true },
+  { value: 'qwen-2.5-coder-32b', label: 'QWEN Coder', premium: true },
   // { value: 'deepseek-r1', label: 'deepseek-r1' },
-  { value: 'llama-3.3-70b', label: 'llama-3.3-70b', premium: true },
+  { value: 'llama-3.3-70b', label: 'LLAMA 3.3', premium: true },
   // { value: 'phi-3-mini', label: 'phi-3-mini' }, // Не работает
-  { value: 'gemini-1.5-pro', label: 'gemini-1.5-pro', premium: true },
+  { value: 'gemini-1.5-pro', label: 'GEMINI PRO', premium: true },
   { value: 'gpt-4.1-mini', label: 'GPT 4.1', premium: true },
   { value: 'gpt-4o-mini', label: 'GPT 4o mini', premium: false },
   { value: 'gpt-4o', label: 'GPT 4o', premium: true },
@@ -144,14 +146,46 @@ const Terminal: React.FC = () => {
       padding: 0,
       margin: 0,
     }}>
-      {/* Текущая директория */}
-      <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '10px 0 0 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <FolderOpenIcon style={{ color: '#a3e635', fontSize: 20, marginRight: 4 }} />
-        <span style={{ color: '#a3e635', fontWeight: 600, fontSize: 15, fontFamily: 'monospace', wordBreak: 'break-all' }}>{cwd}</span>
-      </div>
+      {/* Кнопка входа в левом верхнем углу */}
+      <button
+        style={{
+          position: 'absolute',
+          top: 18,
+          left: 32,
+          zIndex: 110,
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          background: 'rgba(36,37,46,0.18)',
+          border: '1.5px solid #23272a',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'background 0.18s, border 0.18s',
+          boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+          color: '#7dd3fc',
+          outline: 'none',
+          padding: 0,
+        }}
+        title="Войти"
+        onClick={() => {/* TODO: login logic */}}
+        onMouseOver={e => e.currentTarget.style.background = 'rgba(125,211,252,0.10)'}
+        onMouseOut={e => e.currentTarget.style.background = 'rgba(36,37,46,0.18)'}
+      >
+        <AccountCircleIcon style={{ fontSize: 24, color: '#7dd3fc' }} />
+      </button>
       {/* Выбор модели */}
-      <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '18px 0 0 0', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', zIndex: 10 }}>
-        {/* <span style={{ color: '#7dd3fc', fontWeight: 600, fontSize: 15 }}>Модель:</span> */}
+      <div style={{
+        position: 'absolute',
+        top: 18,
+        right: 32,
+        zIndex: 100,
+        minWidth: 220,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+      }}>
         <div style={{ position: 'relative', minWidth: 220 }}>
           <button
             onClick={() => setShowModelDropdown(v => !v)}
@@ -184,7 +218,7 @@ const Terminal: React.FC = () => {
                 style={{ display: 'flex', alignItems: 'center', marginLeft: 6 }}
                 title="Премиум модель — узнать больше в Telegram"
               >
-                <StarIcon style={{ color: '#facc15', fontSize: 18, marginRight: 2, verticalAlign: 'middle', filter: 'drop-shadow(0 0 2px #facc15)' }} />
+                <DiamondIcon style={{ color: '#7dd3fc', fontSize: 18 }} />
               </a>
             )}
             <span style={{ marginLeft: 'auto', color: '#7dd3fc', fontSize: 16, fontWeight: 700, userSelect: 'none' }}>▼</span>
@@ -232,9 +266,31 @@ const Terminal: React.FC = () => {
                     onClick={() => setShowModelDropdown(false)}
                   >
                     <span>{opt.label}</span>
-                    <StarIcon style={{ color: '#facc15', fontSize: 18, marginRight: 2, verticalAlign: 'middle', filter: 'drop-shadow(0 0 2px #facc15)' }} />
-                    <span style={{ fontSize: 13, color: '#facc15', marginLeft: 2, fontWeight: 500 }}>
-                      Премиум
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
+                      backgroundSize: '400% 400%',
+                      padding: 1.5,
+                      animation: 'premium-gradient-anim 2.5s linear infinite',
+                      boxSizing: 'border-box',
+                      border: '1.5px solid transparent',
+                    }}>
+                      <span style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        background: '#f9fafb',
+                      }}>
+                        <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
+                      </span>
                     </span>
                   </a>
                 ) : (
@@ -330,6 +386,28 @@ const Terminal: React.FC = () => {
         )}
         <div ref={scrollRef} />
       </div>
+      {/* Минималистичное отображение текущей директории */}
+      <div style={{
+        width: 'fit-content',
+        minWidth: 120,
+        maxWidth: 900,
+        margin: '18px auto 0 auto',
+        background: 'rgba(36,37,46,0.18)',
+        borderRadius: 8,
+        padding: '4px 12px 4px 8px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        fontSize: 13,
+        color: '#a3e535',
+        fontFamily: 'monospace',
+        boxShadow: '0 1px 4px 0 rgba(163,230,53,0.06)',
+        userSelect: 'text',
+        wordBreak: 'break-all',
+      }}>
+        <FolderOpenIcon style={{ color: '#a3e635', fontSize: 16, marginRight: 2 }} />
+        <span style={{ color: '#a3e635', fontWeight: 500, fontSize: 13 }}>{cwd}</span>
+      </div>
       {/* Input */}
       <div style={{
         display: 'flex',
@@ -358,9 +436,34 @@ const Terminal: React.FC = () => {
           title={manualMode ? 'Ручной терминал' : 'AI-ассистент'}
         >
           {manualMode ? (
-            <TerminalOutlinedIcon style={{ color: '#7dd3fc', fontSize: 24, transition: 'color 0.2s, transform 0.2s', transform: 'scale(1.08)' }} />
+            <TerminalOutlinedIcon style={{ color: '#7dd3fc', fontSize: 22, transition: 'color 0.2s, transform 0.2s', transform: 'scale(1.08)' }} />
           ) : (
-            <StarIcon style={{ color: '#facc15', fontSize: 24, transition: 'color 0.2s, transform 0.2s', transform: 'scale(1.08)' }} />
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
+              backgroundSize: '400% 400%',
+              padding: 1.5,
+              animation: 'premium-gradient-anim 2.5s linear infinite',
+              boxSizing: 'border-box',
+              border: '1.5px solid transparent',
+            }}>
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                background: '#f9fafb',
+              }}>
+                <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
+              </span>
+            </span>
           )}
         </div>
         <input
@@ -425,6 +528,10 @@ const Terminal: React.FC = () => {
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+        @keyframes premium-gradient-anim {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 100% 50%; }
         }
         @media (max-width: 700px) {
           div[style*='maxWidth: 900px'] {
