@@ -8,8 +8,9 @@ const API_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
 
 const isLikelyCommand = (text: string) => {
-  // Простая эвристика: строка не пуста, не длинное пояснение, нет русских букв
-  return text && /[a-zA-Z0-9\-_/]+/.test(text) && !/[а-яА-Я]/.test(text) && text.length < 120;
+  if (!text) return false;
+  if (/^ОПАСНО:/i.test(text.trim())) return true;
+  return /[a-zA-Z0-9\\-_/]+/.test(text) && !/[а-яА-Я]/.test(text) && text.length < 120;
 };
 
 const modelOptions = [
