@@ -3,6 +3,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import CloseIcon from '@mui/icons-material/Close';
 import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import StarIcon from '@mui/icons-material/Star';
 
 const API_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
@@ -36,6 +37,7 @@ const Terminal: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [model, setModel] = useState('gpt-4o-mini');
+  const [showModelDropdown, setShowModelDropdown] = useState(false);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -115,19 +117,123 @@ const Terminal: React.FC = () => {
       margin: 0,
     }}>
       {/* Выбор модели */}
-      <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '18px 0 0 0', display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '18px 0 0 0', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', zIndex: 10 }}>
         <span style={{ color: '#7dd3fc', fontWeight: 600, fontSize: 15 }}>Модель:</span>
-        <select
-          value={model}
-          onChange={e => setModel(e.target.value)}
-          style={{ background: '#232526', color: '#e5e5e5', border: '1.5px solid #23272a', borderRadius: 6, fontSize: 15, padding: '6px 14px', fontFamily: 'monospace', fontWeight: 600 }}
-        >
-          {modelOptions.map(opt => (
-            <option key={opt.value} value={opt.value} disabled={opt.premium}>
-              {opt.label} {opt.premium && '★ Премиум'}
-            </option>
-          ))}
-        </select>
+        <div style={{ position: 'relative', minWidth: 220 }}>
+          <button
+            onClick={() => setShowModelDropdown(v => !v)}
+            style={{
+              background: '#232526',
+              color: '#e5e5e5',
+              border: '1.5px solid #23272a',
+              borderRadius: 6,
+              fontSize: 15,
+              padding: '6px 14px',
+              fontFamily: 'monospace',
+              fontWeight: 600,
+              width: '100%',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              cursor: 'pointer',
+              position: 'relative',
+              minHeight: 36,
+            }}
+          >
+            <span>{modelOptions.find(opt => opt.value === model)?.label || model}</span>
+            {modelOptions.find(opt => opt.value === model)?.premium && (
+              <a
+                href="https://t.me/JustFW"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{ display: 'flex', alignItems: 'center', marginLeft: 6 }}
+                title="Премиум модель — узнать больше в Telegram"
+              >
+                <StarIcon style={{ color: '#facc15', fontSize: 18, marginRight: 2, verticalAlign: 'middle', filter: 'drop-shadow(0 0 2px #facc15)' }} />
+              </a>
+            )}
+            <span style={{ marginLeft: 'auto', color: '#7dd3fc', fontSize: 16, fontWeight: 700, userSelect: 'none' }}>▼</span>
+          </button>
+          {showModelDropdown && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '110%',
+                left: 0,
+                width: '100%',
+                background: '#18181b',
+                border: '1.5px solid #23272a',
+                borderRadius: 8,
+                boxShadow: '0 4px 24px 0 rgba(31,38,135,0.18)',
+                zIndex: 100,
+                marginTop: 4,
+                overflow: 'hidden',
+              }}
+            >
+              {modelOptions.map(opt => (
+                opt.premium ? (
+                  <a
+                    key={opt.value}
+                    href="https://t.me/JustFW"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 16px',
+                      fontSize: 15,
+                      fontFamily: 'monospace',
+                      fontWeight: 600,
+                      color: '#facc15',
+                      background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
+                      cursor: 'pointer',
+                      opacity: 0.7,
+                      position: 'relative',
+                      userSelect: 'none',
+                      textDecoration: 'none',
+                    }}
+                    title="Премиум модель — узнать больше в Telegram"
+                    onClick={() => setShowModelDropdown(false)}
+                  >
+                    <span>{opt.label}</span>
+                    <StarIcon style={{ color: '#facc15', fontSize: 18, marginRight: 2, verticalAlign: 'middle', filter: 'drop-shadow(0 0 2px #facc15)' }} />
+                    <span style={{ fontSize: 13, color: '#facc15', marginLeft: 2, fontWeight: 500 }}>
+                      Премиум
+                    </span>
+                  </a>
+                ) : (
+                  <div
+                    key={opt.value}
+                    onClick={() => {
+                      setModel(opt.value);
+                      setShowModelDropdown(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 16px',
+                      fontSize: 15,
+                      fontFamily: 'monospace',
+                      fontWeight: 600,
+                      color: '#e5e5e5',
+                      background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
+                      cursor: 'pointer',
+                      opacity: 1,
+                      position: 'relative',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <span>{opt.label}</span>
+                  </div>
+                )
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       {/* История */}
       <div style={{
