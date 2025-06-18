@@ -14,9 +14,14 @@ const isLikelyCommand = (text: string) => {
 };
 
 const modelOptions = [
-  { value: 'gpt-4o-mini', label: 'gpt-4o-mini' },
+  // { value: 'gpt-4o-mini', label: 'OpenAI 4o mini' },
   { value: 'qwen-2.5-coder-32b', label: 'qwen-2.5-coder-32b' },
   { value: 'deepseek-r1', label: 'deepseek-r1' },
+  { value: 'llama-3.3-70b', label: 'llama-3.3-70b' },
+  { value: 'phi-3-mini', label: 'phi-3-mini' },
+  { value: 'gemini-1.5-pro', label: 'gemini-1.5-pro' },
+  { value: 'gpt-4.1-mini', label: 'OpenAI 4.1' },
+  { value: 'gpt-4o', label: 'OpenAI 4o' },
 ];
 
 const Terminal: React.FC = () => {
