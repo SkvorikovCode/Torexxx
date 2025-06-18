@@ -4,6 +4,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import TerminalOutlinedIcon from '@mui/icons-material/TerminalOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import StarIcon from '@mui/icons-material/Star';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 
 const API_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
@@ -38,9 +39,14 @@ const Terminal: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [model, setModel] = useState('gpt-4o-mini');
   const [showModelDropdown, setShowModelDropdown] = useState(false);
+  const [cwd, setCwd] = useState<string>('');
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Получаем cwd при монтировании
+    fetch('http://127.0.0.1:8000/cwd')
+      .then(r => r.json())
+      .then(data => setCwd(data.cwd || ''));
   }, [history]);
 
   const handleSend = async () => {
@@ -90,6 +96,7 @@ const Terminal: React.FC = () => {
           idx === runIdx ? { ...item, runResult: data } : item
         )
       );
+      if (data.cwd) setCwd(data.cwd);
       setRunIdx(null);
       setTimeout(() => { inputRef.current?.focus(); }, 0);
     } catch {
@@ -116,9 +123,14 @@ const Terminal: React.FC = () => {
       padding: 0,
       margin: 0,
     }}>
+      {/* Текущая директория */}
+      <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '10px 0 0 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <FolderOpenIcon style={{ color: '#a3e635', fontSize: 20, marginRight: 4 }} />
+        <span style={{ color: '#a3e635', fontWeight: 600, fontSize: 15, fontFamily: 'monospace', wordBreak: 'break-all' }}>{cwd}</span>
+      </div>
       {/* Выбор модели */}
       <div style={{ width: '100%', maxWidth: 900, margin: '0 auto', padding: '18px 0 0 0', display: 'flex', alignItems: 'center', gap: 16, position: 'relative', zIndex: 10 }}>
-        <span style={{ color: '#7dd3fc', fontWeight: 600, fontSize: 15 }}>Модель:</span>
+        {/* <span style={{ color: '#7dd3fc', fontWeight: 600, fontSize: 15 }}>Модель:</span> */}
         <div style={{ position: 'relative', minWidth: 220 }}>
           <button
             onClick={() => setShowModelDropdown(v => !v)}
