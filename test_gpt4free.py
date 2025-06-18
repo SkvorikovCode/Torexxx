@@ -3,7 +3,8 @@ from typing import List, Dict, Optional
 
 def ask_gpt4free(prompt: str = '', messages: Optional[List[Dict]] = None) -> str:
     try:
-        model = "qwen-2.5-coder-32b"
+        # model = "qwen-2.5-coder-32b" # Если нужно писать код
+        model = "gpt-4o-mini" # Основа
         if messages is None:
             messages = [{"role": "user", "content": prompt}]
         response = g4f.ChatCompletion.create(
@@ -19,10 +20,9 @@ def test_gpt4free():
     prompt = "Привет! Как дела?"
     
     try:
-        # model = "gpt-4o-mini" # Работает
+        model = "gpt-4o-mini" # Работает
         # model = "deepseek-r1" # Работает
-        model = "qwen-2.5-coder-32b" # Работает
-        # model = "claude-3.5-sonnet" # Нужен провайдер не blackbox
+        # model = "qwen-2.5-coder-32b" # Работает
         
         print(f"\nТестируем модель: {model}")
         
