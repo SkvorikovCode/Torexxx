@@ -40,6 +40,7 @@ const Terminal: React.FC = () => {
   const [model, setModel] = useState('gpt-4o-mini');
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [cwd, setCwd] = useState<string>('');
+  const [manualMode, setManualMode] = useState(false);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,13 +56,33 @@ const Terminal: React.FC = () => {
     const prompt = input;
     setInput('');
     try {
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, model }),
-      });
-      const data = await res.json();
-      setHistory((h) => [...h, { prompt, response: data.response || data.error || 'Ошибка' }]);
+      if (manualMode) {
+        // Ручной режим: отправляем команду напрямую
+        const res = await fetch(RUN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: prompt }),
+        });
+        const data = await res.json();
+        setHistory((h) => [
+          ...h,
+          {
+            prompt,
+            response: prompt,
+            runResult: data,
+          },
+        ]);
+        if (data.cwd) setCwd(data.cwd);
+      } else {
+        // AI режим
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, model }),
+        });
+        const data = await res.json();
+        setHistory((h) => [...h, { prompt, response: data.response || data.error || 'Ошибка' }]);
+      }
     } catch {
       setHistory((h) => [...h, { prompt, response: 'Ошибка соединения с backend' }]);
     }
@@ -320,7 +341,28 @@ const Terminal: React.FC = () => {
         margin: '0 auto',
         boxSizing: 'border-box',
       }}>
-        <TerminalOutlinedIcon style={{ color: '#7dd3fc', fontSize: 22, marginRight: 10, marginTop: 2 }} />
+        {/* Минималистичный переключатель AI/ручной терминал */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginRight: 16,
+            cursor: 'pointer',
+            userSelect: 'none',
+            transition: 'color 0.2s',
+            minWidth: 32,
+            minHeight: 32,
+            justifyContent: 'center',
+          }}
+          onClick={() => setManualMode(m => !m)}
+          title={manualMode ? 'Ручной терминал' : 'AI-ассистент'}
+        >
+          {manualMode ? (
+            <TerminalOutlinedIcon style={{ color: '#7dd3fc', fontSize: 24, transition: 'color 0.2s, transform 0.2s', transform: 'scale(1.08)' }} />
+          ) : (
+            <StarIcon style={{ color: '#facc15', fontSize: 24, transition: 'color 0.2s, transform 0.2s', transform: 'scale(1.08)' }} />
+          )}
+        </div>
         <input
           ref={inputRef}
           type="text"
@@ -343,7 +385,7 @@ const Terminal: React.FC = () => {
             minWidth: 0,
           }}
           autoFocus
-          placeholder={loading ? 'Жду ответа...' : 'Введите команду...'}
+          placeholder={loading ? 'Жду ответа...' : manualMode ? 'Ручной терминал...' : 'Введите запрос к AI...'}
         />
       </div>
       {/* Модалка подтверждения */}
