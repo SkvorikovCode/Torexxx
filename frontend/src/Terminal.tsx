@@ -18,9 +18,10 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import TuneIcon from '@mui/icons-material/Tune';
 
-const ASK_URL = 'http://127.0.0.1:8000/ask';
-const RUN_URL = 'http://127.0.0.1:8000/run';
+const ASK_URL = 'http://localhost:8000/ask';
+const RUN_URL = 'http://localhost:8000/run';
 
 const HISTORY_KEY = 'terminal_history';
 const FAVORITES_KEY = 'terminal_favorites';
@@ -46,48 +47,88 @@ const modelOptions = [
 const ModelDropdown: React.FC<{
   model: string;
   setModel: (m: string) => void;
-  showModelDropdown: boolean;
-  setShowModelDropdown: (v: boolean) => void;
   loggedInUser: { premium_user: boolean } | null;
-}> = ({ model, setModel, showModelDropdown, setShowModelDropdown, loggedInUser }) => (
-  <div style={{ position: 'relative', minWidth: 220 }}>
-    <button
-      onClick={() => setShowModelDropdown(!showModelDropdown)}
-      style={{
-        background: '#232526',
-        color: '#e5e5e5',
-        border: '1.5px solid #23272a',
-        borderRadius: 6,
-        fontSize: 15,
-        padding: '6px 14px',
-        fontFamily: 'monospace',
-        fontWeight: 600,
-        width: '100%',
-        textAlign: 'left',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        cursor: 'pointer',
-        position: 'relative',
-        minHeight: 36,
-      }}
-    >
-      <span>{modelOptions.find(opt => opt.value === model)?.label || model}</span>
-      {modelOptions.find(opt => opt.value === model)?.premium && (
-        <a
-          href="https://t.me/JustFW"
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={e => e.stopPropagation()}
-          style={{ display: 'flex', alignItems: 'center', marginLeft: 6 }}
-          title="Премиум модель — узнать больше в Telegram"
-        >
-          <DiamondIcon style={{ color: '#7dd3fc', fontSize: 18 }} />
-        </a>
-      )}
-      <span style={{ marginLeft: 'auto', color: '#7dd3fc', fontSize: 16, fontWeight: 700, userSelect: 'none' }}>▼</span>
-    </button>
-    {showModelDropdown && (
+}> = ({ model, setModel, loggedInUser }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(36,37,46,0.18)',
+          border: '1.5px solid #23272a',
+          borderRadius: '50%',
+          width: 38,
+          height: 38,
+          color: '#7dd3fc',
+          transition: 'background 0.18s',
+          boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+          cursor: 'pointer',
+        }}
+        title="Выбрать модель"
+        onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+        onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
+      >
+        <TuneIcon style={{ fontSize: 22, color: '#7dd3fc' }} />
+      </button>
+    );
+  }
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative', minWidth: 220 }}>
+      <button
+        onClick={() => setIsOpen(false)}
+        style={{
+          background: '#232526',
+          color: '#e5e5e5',
+          border: '1.5px solid #23272a',
+          borderRadius: 6,
+          fontSize: 15,
+          padding: '6px 14px',
+          fontFamily: 'monospace',
+          fontWeight: 600,
+          width: '100%',
+          textAlign: 'left',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          cursor: 'pointer',
+          position: 'relative',
+          minHeight: 36,
+        }}
+      >
+        <span>{modelOptions.find(opt => opt.value === model)?.label || model}</span>
+        {modelOptions.find(opt => opt.value === model)?.premium && (
+          <a
+            href="https://t.me/JustFW"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={e => e.stopPropagation()}
+            style={{ display: 'flex', alignItems: 'center', marginLeft: 6 }}
+            title="Премиум модель — узнать больше в Telegram"
+          >
+            <DiamondIcon style={{ color: '#7dd3fc', fontSize: 18 }} />
+          </a>
+        )}
+        <span style={{ marginLeft: 'auto', color: '#7dd3fc', fontSize: 16, fontWeight: 700, userSelect: 'none' }}>▼</span>
+      </button>
       <div
         style={{
           position: 'absolute',
@@ -132,7 +173,7 @@ const ModelDropdown: React.FC<{
                   textDecoration: 'none',
                 }}
                 title="Премиум модель — узнать больше в Telegram"
-                onClick={() => setShowModelDropdown(false)}
+                onClick={() => setIsOpen(false)}
               >
                 <span>{opt.label}</span>
                 <span style={{
@@ -171,7 +212,7 @@ const ModelDropdown: React.FC<{
               key={opt.value}
               onClick={() => {
                 setModel(opt.value);
-                setShowModelDropdown(false);
+                setIsOpen(false);
               }}
               style={{
                 display: 'flex',
@@ -222,9 +263,9 @@ const ModelDropdown: React.FC<{
           );
         })}
       </div>
-    )}
-  </div>
-);
+    </div>
+  );
+};
 
 const Terminal: React.FC = () => {
   const [history, setHistory] = useState<
@@ -240,8 +281,8 @@ const Terminal: React.FC = () => {
   const [runError, setRunError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const [model, setModel] = useState('gpt-4o-mini');
-  const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [cwd, setCwd] = useState<string>('');
   const [manualMode, setManualMode] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -253,17 +294,27 @@ const Terminal: React.FC = () => {
 
   // Состояния для аутентификации
   const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [authError, setAuthError] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<{ email: string; premium_user: boolean } | null>(null);
+  const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
+
+  const fetchCwd = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/cwd', { credentials: 'include' });
+      const data = await response.json();
+      setCwd(data.cwd);
+    } catch (e) {
+      console.error('Failed to fetch CWD', e);
+      setHistory(prev => [...prev, { prompt: '', response: 'Ошибка соединения с backend. Убедитесь, что сервер запущен.' }]);
+    }
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     // Получаем cwd при монтировании
-    fetch('http://127.0.0.1:8000/cwd')
-      .then(r => r.json())
-      .then(data => setCwd(data.cwd || ''));
+    fetchCwd();
     // Загрузка истории и избранного из localStorage при монтировании
     const savedHistory = localStorage.getItem(HISTORY_KEY);
     if (savedHistory) setHistory(JSON.parse(savedHistory));
@@ -280,11 +331,18 @@ const Terminal: React.FC = () => {
     // Не сохраняем результаты выполнения в localStorage, чтобы избежать проблем с размером
     const historyToSave = history.map(({ /*runResult,*/ ...rest }) => rest);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(historyToSave));
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [history]);
 
   useEffect(() => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   }, [favorites]);
+
+  useEffect(() => {
+    if (mode === 'chat') {
+      chatScrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatHistory, mode]);
 
   const handleSend = async () => {
     if (!input.trim() || loading) return;
@@ -294,45 +352,47 @@ const Terminal: React.FC = () => {
     setLoading(true);
 
     try {
+      const url = manualMode ? RUN_URL : ASK_URL;
+      const body = manualMode
+          ? { command: currentInput, cwd }
+          : { prompt: currentInput, model, cwd };
+
+      const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body),
+      });
+
+      if (res.status === 401 || res.status === 403) {
+          setShowAuthRequiredModal(true);
+          setInput(currentInput); // Возвращаем ввод
+          setHistory(h => [...h, { prompt: currentInput, response: 'Ошибка: Требуется авторизация для этого действия.' }]);
+          return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.error || `Ошибка сервера: ${res.statusText}`;
+        setHistory(h => [...h, { prompt: currentInput, response: errorMessage }]);
+        return;
+      }
+
+      const data = await res.json();
+
       if (manualMode) {
-        // Ручной режим: отправляем команду напрямую
-        const res = await fetch(RUN_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ command: currentInput, cwd }),
-        });
-        const data = await res.json();
-        if (data.cwd) setCwd(data.cwd); // Обновляем CWD
-        setHistory((h) => [
-          ...h,
-          {
-            prompt: currentInput,
-            response: `(Ручной ввод)`,
-            runResult: data,
-          },
-        ]);
+          if (data.cwd) setCwd(data.cwd);
+          setHistory((h) => [
+              ...h,
+              { prompt: currentInput, response: `(Ручной ввод)`, runResult: data },
+          ]);
       } else {
-        // AI режим: получаем команду от AI
-        const res = await fetch(ASK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            prompt: currentInput,
-            model,
-            cwd, // Передаем CWD для контекста
-          }),
-        });
-        const data = await res.json();
-        console.error(data);
-        setHistory((h) => [...h, { prompt: currentInput, response: data.response || data.error }]);
+          setHistory((h) => [...h, { prompt: currentInput, response: data.response || data.error }]);
       }
     } catch (error) {
       console.error(error);
       setHistory((h) => {
-        const newHistory = [...h, { prompt: currentInput, response: 'Ошибка соединения с backend' }];
-        return newHistory;
+        return [...h, { prompt: currentInput, response: 'Ошибка соединения с backend. Убедитесь, что сервер запущен.' }];
       });
     } finally {
       setLoading(false);
@@ -363,6 +423,20 @@ const Terminal: React.FC = () => {
         credentials: 'include',
         body: JSON.stringify({ command: commandToRun, cwd }),
       });
+      
+      if (res.status === 401 || res.status === 403) {
+        setShowAuthRequiredModal(true);
+        setRunIdx(null); // Закрываем модалку подтверждения
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.error || `Ошибка сервера: ${res.statusText}`;
+        setRunError(errorMessage);
+        return;
+      }
+      
       const data = await res.json();
       if (data.error) {
         setRunError(data.error);
@@ -375,7 +449,7 @@ const Terminal: React.FC = () => {
         setRunIdx(null); // Закрываем модальное окно
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
+      const errorMsg = err instanceof Error ? err.message : 'Ошибка соединения с backend.';
       setRunError(errorMsg);
     } finally {
       setRunLoading(false);
@@ -398,58 +472,43 @@ const Terminal: React.FC = () => {
 
   const handleLogout = async () => {
     try {
-        await fetch('http://127.0.0.1:8000/logout', {
-            method: 'POST',
-            credentials: 'include',
-        });
-    } catch (error) {
-        console.error("Logout request failed:", error);
+      await fetch('http://localhost:8000/logout', { method: 'POST', credentials: 'include' });
+      setLoggedInUser(null);
+      localStorage.removeItem('loggedInUser'); // Очищаем localStorage
+      handleMenuClose();
+    } catch (e) {
+      console.error('Logout failed:', e);
     }
-    
-    // Очищаем локальные данные и перезагружаем страницу для чистоты состояния
-    setLoggedInUser(null);
-    localStorage.removeItem('loggedInUser');
-    window.location.reload(); 
-    handleMenuClose();
   };
 
   const handleAuth = async () => {
-    setAuthError('');
-    const url = isRegisterMode ? 'http://127.0.0.1:8000/register' : 'http://127.0.0.1:8000/login';
-    const body = {
-      email,
-      password,
-      last_user_ip: '127.0.0.1', // Заглушка, в будущем можно получать реальный IP
-      last_user_MAC_adress: '00:00:00:00:00:00', // Заглушка, получить MAC-адрес из браузера сложно
-    };
-
+    const url = isRegisterMode ? 'http://localhost:8000/register' : 'http://localhost:8000/login';
     try {
-      const res = await fetch(url, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: authEmail, password: authPassword }),
         credentials: 'include',
-        body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (res.ok) {
+
+      if (response.ok) {
         if (isRegisterMode) {
-          // После успешной регистрации переключаем на логин
           setIsRegisterMode(false);
-          setAuthError('Регистрация успешна! Теперь вы можете войти.');
+          setAuthError("Регистрация успешна! Теперь вы можете войти.");
         } else {
-          // После успешного входа
+          const data = await response.json();
           setLoggedInUser(data.user);
-          localStorage.setItem('loggedInUser', JSON.stringify(data.user));
+          localStorage.setItem('loggedInUser', JSON.stringify(data.user)); // Сохраняем пользователя
           setShowLogin(false);
-          setEmail('');
-          setPassword('');
-          // Токен теперь в cookie, можно перезагрузить страницу или обновить состояние
+          setAuthError(null);
+          fetchCwd();
         }
       } else {
-        setAuthError(data.error || 'Произошла неизвестная ошибка');
+        const errorData = await response.json().catch(() => ({ detail: 'Произошла ошибка' }));
+        setAuthError(errorData.detail || 'Неверный email или пароль.');
       }
-    } catch (err: unknown) {
-      console.error(err);
+    } catch (error) {
+      console.error('Auth request failed:', error);
       setAuthError('Ошибка соединения с сервером.');
     }
   };
@@ -487,13 +546,27 @@ const Terminal: React.FC = () => {
         body: JSON.stringify({
           prompt,
           model,
-          // Тут можно передать другой system_prompt для чата, если нужно
         }),
       });
+
+      if (res.status === 401 || res.status === 403) {
+        setShowAuthRequiredModal(true);
+        setChatHistory(h => h.slice(0, -1)); // Удаляем последний промпт
+        setChatInput(prompt); // Возвращаем ввод
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.detail || errorData.error || `Ошибка сервера: ${res.statusText}`;
+        setChatHistory(h => [...h, { role: 'ai', text: errorMessage }]);
+        return;
+      }
+
       const data = await res.json();
       setChatHistory((h) => [...h, { role: 'ai', text: data.response || data.error }]);
     } catch (error) {
-      setChatHistory(h => [...h, { role: 'ai', text: 'Ошибка соединения с backend' }]);
+      setChatHistory(h => [...h, { role: 'ai', text: 'Ошибка соединения с backend. Убедитесь, что сервер запущен.' }]);
       console.error(error);
     } finally {
       setLoading(false);
@@ -541,7 +614,7 @@ const Terminal: React.FC = () => {
           <span style={{ fontWeight: 700, fontSize: 20, color: '#7dd3fc', letterSpacing: 1 }}>Чат с нейросетью</span>
         </div>
         <div style={{ position: 'absolute', top: 18, right: 32, zIndex: 100, minWidth: 220, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} loggedInUser={loggedInUser} />
+          <ModelDropdown model={model} setModel={setModel} loggedInUser={loggedInUser} />
         </div>
         {/* История чата */}
         <div style={{
@@ -579,6 +652,7 @@ const Terminal: React.FC = () => {
               }}>{msg.text}</div>
             </div>
           ))}
+          <div ref={chatScrollRef} />
         </div>
         {/* Ввод чата */}
         <div style={{
@@ -647,132 +721,226 @@ const Terminal: React.FC = () => {
       padding: 0,
       margin: 0,
     }}>
-      {/* Кнопка входа теперь иконка-меню */}
-      <div style={{ position: 'absolute', top: 18, left: 32, zIndex: 110 }}>
-        <Button
-          variant="text"
-          aria-label="User menu"
-          onClick={handleMenuClick}
-          style={{
-            minWidth: 0,
-            minHeight: 0,
-            padding: 0,
-            borderRadius: '50%',
-            background: 'rgba(36,37,46,0.18)',
-            border: '1.5px solid #23272a',
-            color: '#7dd3fc',
-            boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+      <div style={{ position: 'sticky', top: 0, zIndex: 90, background: 'rgba(24,24,27,0.92)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', padding: '8px 24px', borderBottom: '1.5px solid #23272a' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Left: User Menu */}
+            <div>
+              <Button
+                variant="text"
+                aria-label="User menu"
+                onClick={handleMenuClick}
+                style={{
+                  minWidth: 0,
+                  minHeight: 0,
+                  padding: 0,
+                  borderRadius: '50%',
+                  background: 'rgba(36,37,46,0.18)',
+                  border: '1.5px solid #23272a',
+                  color: '#7dd3fc',
+                  boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.18s, border 0.18s',
+                }}
+                onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+                onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
+              >
+                <AccountCircleIcon style={{ fontSize: 24, color: '#7dd3fc' }} />
+              </Button>
+              <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleMenuClose}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                PaperProps={{
+                  style: {
+                    background: '#232526',
+                    color: '#e5e5e5',
+                    minWidth: 160,
+                    borderRadius: 14,
+                    boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)',
+                    fontFamily: 'monospace',
+                    fontSize: 16,
+                    padding: '8px 0',
+                    animation: open ? 'fadeInMenu 0.25s' : undefined,
+                  },
+                }}
+              >
+                {loggedInUser ? (
+                  <>
+                    <MenuItem style={{ margin: '4px 12px', padding: '12px 18px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, background: 'rgba(36,37,46,0.12)', borderRadius: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontWeight: 700, color: '#7dd3fc' }}>{loggedInUser.email}</span>
+                        {loggedInUser.premium_user && <DiamondIcon style={{ color: '#facc15', fontSize: 18 }} />}
+                      </div>
+                      <span style={{ fontSize: 13, color: loggedInUser.premium_user ? '#facc15' : '#bfc7d5' }}>
+                        {loggedInUser.premium_user ? 'Premium' : 'Standard'}
+                      </span>
+                    </MenuItem>
+                    <MenuItem onClick={handleLogout} style={{ color: '#f87171', fontWeight: 700, margin: '4px 12px', padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 17, borderRadius: 10, transition: 'background 0.18s', }}
+                      onMouseOver={e => (e.currentTarget.style.background = 'rgba(248,113,113,0.10)')}
+                      onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      Выйти
+                    </MenuItem>
+                  </>
+                ) : (
+                  <MenuItem
+                    onClick={() => { handleMenuClose(); setShowLogin(true); setAuthError(''); setIsRegisterMode(false); }}
+                    style={{
+                      color: '#7dd3fc',
+                      fontWeight: 700,
+                      borderRadius: 10,
+                      margin: '4px 12px',
+                      padding: '12px 18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      fontSize: 17,
+                      background: 'rgba(36,37,46,0.12)',
+                      transition: 'background 0.18s, color 0.18s',
+                    }}
+                    onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+                    onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.12)')}
+                  >
+                    <AccountCircleIcon style={{ color: '#7dd3fc', fontSize: 22, marginRight: 2 }} />
+                    <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Sign in</span>
+                  </MenuItem>
+                )}
+              </Menu>
+            </div>
+
+            {/* Center: CWD */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 13,
+              color: '#a3e535',
+              fontFamily: 'monospace',
+              userSelect: 'text',
+              wordBreak: 'break-all',
+              background: 'rgba(36,37,46,0.18)',
+              borderRadius: 8,
+              padding: '6px 12px',
+              border: '1px solid #23272a',
+            }}>
+              <FolderOpenIcon style={{ color: '#a3e635', fontSize: 16, marginRight: 2 }} />
+              <span style={{ color: '#a3e635', fontWeight: 500, fontSize: 13 }}>{cwd}</span>
+            </div>
+
+            {/* Right: Icons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <ModelDropdown model={model} setModel={setModel} loggedInUser={loggedInUser} />
+              <button
+                onClick={() => setMode('chat')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(36,37,46,0.18)',
+                  border: '1.5px solid #23272a',
+                  borderRadius: '50%',
+                  width: 38,
+                  height: 38,
+                  color: '#7dd3fc',
+                  transition: 'background 0.18s, border 0.18s, color 0.18s',
+                  boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+                  textDecoration: 'none',
+                  fontSize: 0,
+                  cursor: 'pointer',
+                }}
+                title="Чат с нейросетью"
+                onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+                onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
+              >
+                <ChatBubbleOutlineIcon style={{ fontSize: 22, color: '#7dd3fc' }} />
+              </button>
+            </div>
+          </div>
+          
+          {/* Input Bar */}
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'background 0.18s, border 0.18s',
-          }}
-          onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
-          onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
-        >
-          <AccountCircleIcon style={{ fontSize: 24, color: '#7dd3fc' }} />
-        </Button>
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleMenuClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-          PaperProps={{
-            style: {
-              background: '#232526',
-              color: '#e5e5e5',
-              minWidth: 160,
-              borderRadius: 14,
-              boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)',
-              fontFamily: 'monospace',
-              fontSize: 16,
-              padding: '8px 0',
-              animation: open ? 'fadeInMenu 0.25s' : undefined,
-            },
-          }}
-        >
-          {loggedInUser ? (
-            <>
-              <MenuItem style={{ margin: '4px 12px', padding: '12px 18px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, background: 'rgba(36,37,46,0.12)', borderRadius: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontWeight: 700, color: '#7dd3fc' }}>{loggedInUser.email}</span>
-                  {loggedInUser.premium_user && <DiamondIcon style={{ color: '#facc15', fontSize: 18 }} />}
-                </div>
-                <span style={{ fontSize: 13, color: loggedInUser.premium_user ? '#facc15' : '#bfc7d5' }}>
-                  {loggedInUser.premium_user ? 'Premium' : 'Standard'}
-                </span>
-              </MenuItem>
-              <MenuItem onClick={handleLogout} style={{ color: '#f87171', fontWeight: 700, margin: '4px 12px', padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 17, borderRadius: 10, transition: 'background 0.18s', }}
-                onMouseOver={e => (e.currentTarget.style.background = 'rgba(248,113,113,0.10)')}
-                onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                Выйти
-              </MenuItem>
-            </>
-          ) : (
-            <MenuItem
-              onClick={() => { handleMenuClose(); setShowLogin(true); setAuthError(''); setIsRegisterMode(false); }}
+            width: '100%',
+            boxSizing: 'border-box',
+          }}>
+            <div
               style={{
-                color: '#7dd3fc',
-                fontWeight: 700,
-                borderRadius: 10,
-                margin: '4px 12px',
-                padding: '12px 18px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
-                fontSize: 17,
-                background: 'rgba(36,37,46,0.12)',
-                transition: 'background 0.18s, color 0.18s',
+                marginRight: 16,
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'color 0.2s',
+                minWidth: 32,
+                minHeight: 32,
+                justifyContent: 'center',
               }}
-              onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
-              onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.12)')}
+              onClick={() => setManualMode(m => !m)}
+              title={manualMode ? 'Ручной терминал' : 'AI-ассистент'}
             >
-              <AccountCircleIcon style={{ color: '#7dd3fc', fontSize: 22, marginRight: 2 }} />
-              <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Sign in</span>
-            </MenuItem>
-          )}
-        </Menu>
-      </div>
-      {/* Выбор модели */}
-      <div style={{
-        position: 'absolute',
-        top: 18,
-        right: 32,
-        zIndex: 100,
-        minWidth: 220,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-      }}>
-        <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} loggedInUser={loggedInUser} />
-        {/* Кнопка чата */}
-        <button
-          onClick={() => setMode('chat')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(36,37,46,0.18)',
-            border: '1.5px solid #23272a',
-            borderRadius: '50%',
-            width: 38,
-            height: 38,
-            marginLeft: 6,
-            color: '#7dd3fc',
-            transition: 'background 0.18s, border 0.18s, color 0.18s',
-            boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
-            textDecoration: 'none',
-            fontSize: 0,
-            cursor: 'pointer',
-          }}
-          title="Чат с нейросетью"
-          onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
-          onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.18)')}
-        >
-          <ChatBubbleOutlineIcon style={{ fontSize: 22, color: '#7dd3fc' }} />
-        </button>
+              {manualMode ? (
+                <TerminalOutlinedIcon style={{ color: '#7dd3fc', fontSize: 22, transition: 'color 0.2s, transform 0.2s', transform: 'scale(1.08)' }} />
+              ) : (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
+                  backgroundSize: '400% 400%',
+                  padding: 1.5,
+                  animation: 'premium-gradient-anim 2.5s linear infinite',
+                  boxSizing: 'border-box',
+                  border: '1.5px solid transparent',
+                }}>
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    background: '#f9fafb',
+                  }}>
+                    <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
+                  </span>
+                </span>
+              )}
+            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={loading}
+              style={{
+                flex: 1,
+                background: 'rgba(24,24,27,0.92)',
+                border: '1.5px solid #23272a',
+                outline: 'none',
+                color: '#e5e5e5',
+                fontSize: 18,
+                fontFamily: 'monospace',
+                borderRadius: 8,
+                padding: '8px 14px',
+                boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
+                transition: 'border 0.2s, box-shadow 0.2s',
+                minWidth: 0,
+              }}
+              autoFocus
+              placeholder={loading ? 'Жду ответа...' : manualMode ? 'Ручной терминал...' : 'Введите запрос к AI...'}
+            />
+          </div>
+        </div>
       </div>
       {/* Избранные команды */}
       {favorites.length > 0 && (
@@ -866,111 +1034,6 @@ const Terminal: React.FC = () => {
         )}
         <div ref={scrollRef} />
       </div>
-      {/* Минималистичное отображение текущей директории */}
-      <div style={{
-        width: 'fit-content',
-        minWidth: 120,
-        maxWidth: 900,
-        margin: '18px auto 0 auto',
-        background: 'rgba(36,37,46,0.18)',
-        borderRadius: 8,
-        padding: '4px 12px 4px 8px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        fontSize: 13,
-        color: '#a3e535',
-        fontFamily: 'monospace',
-        boxShadow: '0 1px 4px 0 rgba(163,230,53,0.06)',
-        userSelect: 'text',
-        wordBreak: 'break-all',
-      }}>
-        <FolderOpenIcon style={{ color: '#a3e635', fontSize: 16, marginRight: 2 }} />
-        <span style={{ color: '#a3e635', fontWeight: 500, fontSize: 13 }}>{cwd}</span>
-      </div>
-      {/* Input */}
-      <div style={{
-        display: 'flex',
-        borderTop: '1.5px solid #23272a',
-        padding: 22,
-        background: 'rgba(24,24,27,0.92)',
-        width: '100%',
-        maxWidth: 900,
-        margin: '0 auto',
-        boxSizing: 'border-box',
-      }}>
-        {/* Минималистичный переключатель AI/ручной терминал */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginRight: 16,
-            cursor: 'pointer',
-            userSelect: 'none',
-            transition: 'color 0.2s',
-            minWidth: 32,
-            minHeight: 32,
-            justifyContent: 'center',
-          }}
-          onClick={() => setManualMode(m => !m)}
-          title={manualMode ? 'Ручной терминал' : 'AI-ассистент'}
-        >
-          {manualMode ? (
-            <TerminalOutlinedIcon style={{ color: '#7dd3fc', fontSize: 22, transition: 'color 0.2s, transform 0.2s', transform: 'scale(1.08)' }} />
-          ) : (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
-              backgroundSize: '400% 400%',
-              padding: 1.5,
-              animation: 'premium-gradient-anim 2.5s linear infinite',
-              boxSizing: 'border-box',
-              border: '1.5px solid transparent',
-            }}>
-              <span style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 16,
-                height: 16,
-                borderRadius: '50%',
-                background: '#f9fafb',
-              }}>
-                <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
-              </span>
-            </span>
-          )}
-        </div>
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-          style={{
-            flex: 1,
-            background: 'rgba(24,24,27,0.92)',
-            border: '1.5px solid #23272a',
-            outline: 'none',
-            color: '#e5e5e5',
-            fontSize: 18,
-            fontFamily: 'monospace',
-            borderRadius: 8,
-            padding: '8px 14px',
-            boxShadow: '0 1px 4px 0 rgba(31,38,135,0.08)',
-            transition: 'border 0.2s, box-shadow 0.2s',
-            minWidth: 0,
-          }}
-          autoFocus
-          placeholder={loading ? 'Жду ответа...' : manualMode ? 'Ручной терминал...' : 'Введите запрос к AI...'}
-        />
-      </div>
       {/* Модалка подтверждения */}
       {runIdx !== null && (
         <div style={{
@@ -1019,8 +1082,8 @@ const Terminal: React.FC = () => {
             type="email"
             fullWidth
             variant="outlined"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={authEmail}
+            onChange={(e) => setAuthEmail(e.target.value)}
             InputLabelProps={{ style: { color: '#bfc7d5', fontFamily: 'monospace' } }}
             InputProps={{ style: { color: '#e5e5e5', fontFamily: 'monospace', background: 'rgba(36,37,46,0.18)' } }}
           />
@@ -1029,8 +1092,8 @@ const Terminal: React.FC = () => {
             type="password"
             fullWidth
             variant="outlined"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={authPassword}
+            onChange={(e) => setAuthPassword(e.target.value)}
             InputLabelProps={{ style: { color: '#bfc7d5', fontFamily: 'monospace' } }}
             InputProps={{ style: { color: '#e5e5e5', fontFamily: 'monospace', background: 'rgba(36,37,46,0.18)' } }}
           />
@@ -1041,6 +1104,29 @@ const Terminal: React.FC = () => {
           </Button>
           <Button variant="contained" style={{ background: '#7dd3fc', color: '#232526', fontWeight: 700, borderRadius: 8, boxShadow: '0 1px 4px 0 rgba(125,211,252,0.12)' }} onClick={handleAuth}>
             {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* Auth Required Modal */}
+      <Dialog open={showAuthRequiredModal} onClose={() => setShowAuthRequiredModal(false)}>
+        <DialogTitle sx={{ fontWeight: 600 }}>Требуется авторизация</DialogTitle>
+        <DialogContent>
+          <p>Для выполнения этого действия необходимо войти в систему.</p>
+          <p>Пожалуйста, войдите в свою учетную запись или зарегистрируйтесь.</p>
+        </DialogContent>
+        <DialogActions sx={{ padding: '8px 24px 16px' }}>
+          <Button onClick={() => setShowAuthRequiredModal(false)} color="inherit">
+            Отмена
+          </Button>
+          <Button 
+              onClick={() => {
+                  setShowAuthRequiredModal(false);
+                  setShowLogin(true);
+              }}
+              variant="contained"
+              color="primary"
+          >
+            Войти / Регистрация
           </Button>
         </DialogActions>
       </Dialog>
