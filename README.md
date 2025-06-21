@@ -3,7 +3,6 @@
 [![GitHub release](https://img.shields.io/github/v/release/SkvorikovCode/Torexxx)](https://github.com/SkvorikovCode/Torexxx/releases/latest)
 [![Made with Electron](https://img.shields.io/badge/made%20with-electron-47848f.svg)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
-[![FastAPI](https.img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 
 AI-ассистент нового поколения для терминала. Мощь нейросетей, премиум-UI и мгновенное выполнение команд — всё в одном приложении.
 
@@ -31,27 +30,9 @@ AI-ассистент нового поколения для терминала.
    cd Torexxx
    ```
 
-2. **Настройка бэкенда (FastAPI):**
+2. **Настройка и запуск фронтенда (React + Electron):**
    ```sh
-   # Перейдите в папку backend
-   cd backend
-
-   # Создайте и активируйте виртуальное окружение
-   python3 -m venv venv
-   source venv/bin/activate  # Для macOS/Linux
-   # venv\Scripts\activate   # Для Windows
-
-   # Установите зависимости
-   pip install -r requirements.txt
-
-   # Запустите бэкенд
-   uvicorn main:app --reload
-   ```
-   Бэкенд будет доступен по адресу `http://127.0.0.1:8000`.
-
-3. **Настройка фронтенда (React + Electron):**
-   ```sh
-   # Откройте новый терминал и перейдите в папку frontend
+   # Перейдите в папку frontend
    cd frontend
 
    # Установите зависимости
@@ -60,6 +41,7 @@ AI-ассистент нового поколения для терминала.
    # Запустите в режиме разработки (React + Electron)
    npm start
    ```
+   *Примечание: для полноценной работы с AI требуется запущенный бэкенд, который не является частью этого open-source репозитория.*
 
 ### Сборка приложения
 
@@ -74,9 +56,6 @@ npm run pack
 ## ⚙️ Технологии
 
 - **Frontend:** React, Vite, Electron, Material-UI
-- **Backend:** FastAPI
-- **AI Core:** g4f
-- **База данных:** MongoDB (для пользователей)
 - **Сборка:** Electron Builder
 
 ---
