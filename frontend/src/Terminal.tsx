@@ -49,7 +49,8 @@ const ModelDropdown: React.FC<{
   setModel: (m: string) => void;
   showModelDropdown: boolean;
   setShowModelDropdown: (v: boolean) => void;
-}> = ({ model, setModel, showModelDropdown, setShowModelDropdown }) => (
+  loggedInUser: { premium_user: boolean } | null;
+}> = ({ model, setModel, showModelDropdown, setShowModelDropdown, loggedInUser }) => (
   <div style={{ position: 'relative', minWidth: 220 }}>
     <button
       onClick={() => setShowModelDropdown(!showModelDropdown)}
@@ -103,61 +104,70 @@ const ModelDropdown: React.FC<{
           overflow: 'hidden',
         }}
       >
-        {modelOptions.map(opt => (
-          opt.premium ? (
-            <a
-              key={opt.value}
-              href="https://t.me/JustFW"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 16px',
-                fontSize: 15,
-                fontFamily: 'monospace',
-                fontWeight: 600,
-                color: '#facc15',
-                background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
-                cursor: 'pointer',
-                opacity: 0.7,
-                position: 'relative',
-                userSelect: 'none',
-                textDecoration: 'none',
-              }}
-              title="Премиум модель — узнать больше в Telegram"
-              onClick={() => setShowModelDropdown(false)}
-            >
-              <span>{opt.label}</span>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
-                backgroundSize: '400% 400%',
-                padding: 1.5,
-                animation: 'premium-gradient-anim 2.5s linear infinite',
-                boxSizing: 'border-box',
-                border: '1.5px solid transparent',
-              }}>
-                <span style={{
+        {modelOptions.map(opt => {
+          const isPremiumModel = opt.premium;
+          const userHasPremium = !!loggedInUser?.premium_user;
+
+          if (isPremiumModel && !userHasPremium) {
+            // Пользователь НЕ премиум, показываем неактивную ссылку на телеграм
+            return (
+              <a
+                key={opt.value}
+                href="https://t.me/JustFW"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
                   display: 'flex',
                   alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 16px',
+                  fontSize: 15,
+                  fontFamily: 'monospace',
+                  fontWeight: 600,
+                  color: '#facc15',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  opacity: 0.6,
+                  position: 'relative',
+                  userSelect: 'none',
+                  textDecoration: 'none',
+                }}
+                title="Премиум модель — узнать больше в Telegram"
+                onClick={() => setShowModelDropdown(false)}
+              >
+                <span>{opt.label}</span>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
                   justifyContent: 'center',
-                  width: 16,
-                  height: 16,
+                  width: 22,
+                  height: 22,
                   borderRadius: '50%',
-                  background: '#f9fafb',
+                  background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
+                  backgroundSize: '400% 400%',
+                  padding: 1.5,
+                  animation: 'premium-gradient-anim 2.5s linear infinite',
+                  boxSizing: 'border-box',
+                  border: '1.5px solid transparent',
                 }}>
-                  <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    background: '#f9fafb',
+                  }}>
+                    <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
+                  </span>
                 </span>
-              </span>
-            </a>
-          ) :
+              </a>
+            );
+          }
+
+          // Пользователь премиум ИЛИ модель бесплатная, показываем активный элемент
+          return (
             <div
               key={opt.value}
               onClick={() => {
@@ -172,7 +182,7 @@ const ModelDropdown: React.FC<{
                 fontSize: 15,
                 fontFamily: 'monospace',
                 fontWeight: 600,
-                color: '#e5e5e5',
+                color: isPremiumModel ? '#facc15' : '#e5e5e5',
                 background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
                 cursor: 'pointer',
                 opacity: 1,
@@ -181,8 +191,37 @@ const ModelDropdown: React.FC<{
               }}
             >
               <span>{opt.label}</span>
+              {isPremiumModel && (
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
+                  backgroundSize: '400% 400%',
+                  padding: 1.5,
+                  animation: 'premium-gradient-anim 2.5s linear infinite',
+                  boxSizing: 'border-box',
+                  border: '1.5px solid transparent',
+                }}>
+                  <span style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 16,
+                    height: 16,
+                    borderRadius: '50%',
+                    background: '#f9fafb',
+                  }}>
+                    <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
+                  </span>
+                </span>
+              )}
             </div>
-        ))}
+          );
+        })}
       </div>
     )}
   </div>
@@ -213,6 +252,13 @@ const Terminal: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
 
+  // Состояния для аутентификации
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [loggedInUser, setLoggedInUser] = useState<{ email: string; premium_user: boolean } | null>(null);
+
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     // Получаем cwd при монтировании
@@ -224,6 +270,11 @@ const Terminal: React.FC = () => {
     if (savedHistory) setHistory(JSON.parse(savedHistory));
     const savedFav = localStorage.getItem(FAVORITES_KEY);
     if (savedFav) setFavorites(JSON.parse(savedFav));
+    // Проверяем, есть ли пользователь в localStorage при загрузке
+    const savedUser = localStorage.getItem('loggedInUser');
+    if (savedUser) {
+      setLoggedInUser(JSON.parse(savedUser));
+    }
   }, []);
 
   useEffect(() => {
@@ -340,6 +391,51 @@ const Terminal: React.FC = () => {
     setAnchorEl(null);
   };
 
+  const handleLogout = () => {
+    setLoggedInUser(null);
+    localStorage.removeItem('loggedInUser');
+    handleMenuClose();
+  };
+
+  const handleAuth = async () => {
+    setAuthError('');
+    const url = isRegisterMode ? 'http://127.0.0.1:8000/register' : 'http://127.0.0.1:8000/login';
+    const body = {
+      email,
+      password,
+      last_user_ip: '127.0.0.1', // Заглушка, в будущем можно получать реальный IP
+      last_user_MAC_adress: '00:00:00:00:00:00', // Заглушка, получить MAC-адрес из браузера сложно
+    };
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (isRegisterMode) {
+          // После успешной регистрации переключаем на логин
+          setIsRegisterMode(false);
+          setAuthError('Регистрация успешна! Теперь вы можете войти.');
+        } else {
+          // После успешного входа
+          setLoggedInUser(data.user);
+          localStorage.setItem('loggedInUser', JSON.stringify(data.user));
+          setShowLogin(false);
+          setEmail('');
+          setPassword('');
+        }
+      } else {
+        setAuthError(data.error || 'Произошла неизвестная ошибка');
+      }
+    } catch (err: unknown) {
+      console.error(err);
+      setAuthError('Ошибка соединения с сервером.');
+    }
+  };
+
   const isFavorite = (item: { prompt: string; response: string }) => {
     return favorites.some(f => f.prompt === item.prompt && f.response === item.response);
   };
@@ -426,7 +522,7 @@ const Terminal: React.FC = () => {
           <span style={{ fontWeight: 700, fontSize: 20, color: '#7dd3fc', letterSpacing: 1 }}>Чат с нейросетью</span>
         </div>
         <div style={{ position: 'absolute', top: 18, right: 32, zIndex: 100, minWidth: 220, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} />
+          <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} loggedInUser={loggedInUser} />
         </div>
         {/* История чата */}
         <div style={{
@@ -577,27 +673,47 @@ const Terminal: React.FC = () => {
             },
           }}
         >
-          <MenuItem
-            onClick={() => { handleMenuClose(); setShowLogin(true); }}
-            style={{
-              color: '#7dd3fc',
-              fontWeight: 700,
-              borderRadius: 10,
-              margin: '4px 12px',
-              padding: '12px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              fontSize: 17,
-              background: 'rgba(36,37,46,0.12)',
-              transition: 'background 0.18s, color 0.18s',
-            }}
-            onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
-            onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.12)')}
-          >
-            <AccountCircleIcon style={{ color: '#7dd3fc', fontSize: 22, marginRight: 2 }} />
-            <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Sign in</span>
-          </MenuItem>
+          {loggedInUser ? (
+            <>
+              <MenuItem style={{ margin: '4px 12px', padding: '12px 18px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4, background: 'rgba(36,37,46,0.12)', borderRadius: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 700, color: '#7dd3fc' }}>{loggedInUser.email}</span>
+                  {loggedInUser.premium_user && <DiamondIcon style={{ color: '#facc15', fontSize: 18 }} />}
+                </div>
+                <span style={{ fontSize: 13, color: loggedInUser.premium_user ? '#facc15' : '#bfc7d5' }}>
+                  {loggedInUser.premium_user ? 'Premium' : 'Standard'}
+                </span>
+              </MenuItem>
+              <MenuItem onClick={handleLogout} style={{ color: '#f87171', fontWeight: 700, margin: '4px 12px', padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 17, borderRadius: 10, transition: 'background 0.18s', }}
+                onMouseOver={e => (e.currentTarget.style.background = 'rgba(248,113,113,0.10)')}
+                onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+              >
+                Выйти
+              </MenuItem>
+            </>
+          ) : (
+            <MenuItem
+              onClick={() => { handleMenuClose(); setShowLogin(true); setAuthError(''); setIsRegisterMode(false); }}
+              style={{
+                color: '#7dd3fc',
+                fontWeight: 700,
+                borderRadius: 10,
+                margin: '4px 12px',
+                padding: '12px 18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                fontSize: 17,
+                background: 'rgba(36,37,46,0.12)',
+                transition: 'background 0.18s, color 0.18s',
+              }}
+              onMouseOver={e => (e.currentTarget.style.background = 'rgba(125,211,252,0.10)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'rgba(36,37,46,0.12)')}
+            >
+              <AccountCircleIcon style={{ color: '#7dd3fc', fontSize: 22, marginRight: 2 }} />
+              <span style={{ fontWeight: 700, letterSpacing: 0.5 }}>Sign in</span>
+            </MenuItem>
+          )}
         </Menu>
       </div>
       {/* Выбор модели */}
@@ -611,7 +727,7 @@ const Terminal: React.FC = () => {
         alignItems: 'center',
         gap: 16,
       }}>
-        <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} />
+        <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} loggedInUser={loggedInUser} />
         {/* Кнопка чата */}
         <button
           onClick={() => setMode('chat')}
@@ -873,14 +989,19 @@ const Terminal: React.FC = () => {
           fontFamily: 'monospace',
         }
       }}>
-        <DialogTitle style={{ color: '#7dd3fc', fontWeight: 700, fontSize: 22, textAlign: 'center', letterSpacing: 1 }}>Вход</DialogTitle>
+        <DialogTitle style={{ color: '#7dd3fc', fontWeight: 700, fontSize: 22, textAlign: 'center', letterSpacing: 1 }}>
+          {isRegisterMode ? 'Регистрация' : 'Вход'}
+        </DialogTitle>
         <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 8 }}>
+          {authError && <div style={{ color: isRegisterMode && authError.includes('успешна') ? '#a3e635' : '#f87171', textAlign: 'center', padding: '8px', borderRadius: 6, background: isRegisterMode && authError.includes('успешна') ? 'rgba(163,230,53,0.1)' : 'rgba(248,113,113,0.1)' }}>{authError}</div>}
           <TextField
             autoFocus
             label="Email"
             type="email"
             fullWidth
             variant="outlined"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             InputLabelProps={{ style: { color: '#bfc7d5', fontFamily: 'monospace' } }}
             InputProps={{ style: { color: '#e5e5e5', fontFamily: 'monospace', background: 'rgba(36,37,46,0.18)' } }}
           />
@@ -889,14 +1010,18 @@ const Terminal: React.FC = () => {
             type="password"
             fullWidth
             variant="outlined"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             InputLabelProps={{ style: { color: '#bfc7d5', fontFamily: 'monospace' } }}
             InputProps={{ style: { color: '#e5e5e5', fontFamily: 'monospace', background: 'rgba(36,37,46,0.18)' } }}
           />
         </DialogContent>
         <DialogActions style={{ justifyContent: 'space-between', padding: '18px 24px 18px 24px' }}>
-          <Button onClick={() => setShowLogin(false)} style={{ color: '#7dd3fc', fontWeight: 600 }}>Отмена</Button>
-          <Button variant="contained" style={{ background: '#7dd3fc', color: '#232526', fontWeight: 700, borderRadius: 8, boxShadow: '0 1px 4px 0 rgba(125,211,252,0.12)' }} onClick={() => setShowLogin(false)}>
-            Войти
+          <Button onClick={() => { setIsRegisterMode(!isRegisterMode); setAuthError(''); }} style={{ color: '#bfc7d5', fontWeight: 600, textTransform: 'none' }}>
+            {isRegisterMode ? 'Уже есть аккаунт?' : 'Создать аккаунт'}
+          </Button>
+          <Button variant="contained" style={{ background: '#7dd3fc', color: '#232526', fontWeight: 700, borderRadius: 8, boxShadow: '0 1px 4px 0 rgba(125,211,252,0.12)' }} onClick={handleAuth}>
+            {isRegisterMode ? 'Зарегистрироваться' : 'Войти'}
           </Button>
         </DialogActions>
       </Dialog>
