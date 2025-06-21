@@ -1,4 +1,6 @@
 fastapi
 uvicorn
 pydantic
-g4f 
+g4f
+python-jose[cryptography]
+passlib[bcrypt] 

@@ -287,6 +287,17 @@ const Terminal: React.FC = () => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   }, [favorites]);
 
+  const getAuthHeaders = (): HeadersInit => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  };
+
   const handleSend = async () => {
     if (!input.trim()) return;
     setLoading(true);
@@ -297,7 +308,7 @@ const Terminal: React.FC = () => {
         // Ручной режим: отправляем команду напрямую
         const res = await fetch(RUN_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ command: prompt, cwd }),
         });
         const data = await res.json();
@@ -314,7 +325,7 @@ const Terminal: React.FC = () => {
         // AI режим: получаем команду от AI
         const res = await fetch(TERMINAL_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             prompt,
             model,
@@ -355,7 +366,7 @@ const Terminal: React.FC = () => {
     try {
       const res = await fetch(RUN_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ command: commandToRun, cwd }), // Передаем CWD
       });
       const data = await res.json();
@@ -414,18 +425,23 @@ const Terminal: React.FC = () => {
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok) {
         if (isRegisterMode) {
           // После успешной регистрации переключаем на логин
           setIsRegisterMode(false);
           setAuthError('Регистрация успешна! Теперь вы можете войти.');
         } else {
           // После успешного входа
-          setLoggedInUser(data.user);
-          localStorage.setItem('loggedInUser', JSON.stringify(data.user));
-          setShowLogin(false);
-          setEmail('');
-          setPassword('');
+          if (data.access_token) {
+            setLoggedInUser(data.user);
+            localStorage.setItem('loggedInUser', JSON.stringify(data.user));
+            localStorage.setItem('accessToken', data.access_token); // Сохраняем токен
+            setShowLogin(false);
+            setEmail('');
+            setPassword('');
+          } else {
+             setAuthError(data.error || 'Ошибка входа: токен не получен.');
+          }
         }
       } else {
         setAuthError(data.error || 'Произошла неизвестная ошибка');
@@ -464,7 +480,7 @@ const Terminal: React.FC = () => {
     try {
       const res = await fetch(ASK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           prompt,
           model,
