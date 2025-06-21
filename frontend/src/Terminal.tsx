@@ -19,7 +19,8 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
-const API_URL = 'http://127.0.0.1:8000/ask';
+const TERMINAL_URL = 'http://127.0.0.1:8000/terminal';
+const ASK_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
 
 const HISTORY_KEY = 'terminal_history';
@@ -226,7 +227,9 @@ const Terminal: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    // Не сохраняем результаты выполнения в localStorage, чтобы избежать проблем с размером
+    const historyToSave = history.map(({ /*runResult,*/ ...rest }) => rest);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(historyToSave));
   }, [history]);
 
   useEffect(() => {
@@ -244,33 +247,39 @@ const Terminal: React.FC = () => {
         const res = await fetch(RUN_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: prompt }),
+          body: JSON.stringify({ command: prompt, cwd }),
         });
         const data = await res.json();
-        setHistory((h) => {
-          const newHistory = [...h, { prompt, response: prompt, runResult: data }];
-          return newHistory.slice(-10);
-        });
-        if (data.cwd) setCwd(data.cwd);
+        if(data.cwd) setCwd(data.cwd); // Обновляем CWD
+        setHistory((h) => [
+          ...h,
+          {
+            prompt,
+            response: `(Ручной ввод)`,
+            runResult: data,
+          },
+        ]);
       } else {
-        // AI режим
-        const terminalSystemPrompt = 'Ты — терминальный AI-ассистент. Всегда отвечай только терминальными командами для Mac/Linux/Windows, без пояснений, на языке пользователя. Если команда опасна — предупреди.';
-        const res = await fetch(API_URL, {
+        // AI режим: получаем команду от AI
+        const res = await fetch(TERMINAL_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, model, system_prompt: terminalSystemPrompt }),
+          body: JSON.stringify({
+            prompt,
+            model,
+            mode: 'ai', // Явно указываем режим
+            cwd, // Передаем CWD для контекста
+          }),
         });
         const data = await res.json();
-        setHistory((h) => {
-          const newHistory = [...h, { prompt, response: data.response || data.error || 'Ошибка' }];
-          return newHistory.slice(-10);
-        });
+        setHistory((h) => [...h, { prompt, response: data.response || data.error }]);
       }
-    } catch {
+    } catch (error) {
       setHistory((h) => {
         const newHistory = [...h, { prompt, response: 'Ошибка соединения с backend' }];
         return newHistory.slice(-10);
       });
+      console.error(error);
     }
     setLoading(false);
   };
@@ -290,26 +299,31 @@ const Terminal: React.FC = () => {
     if (runIdx === null) return;
     setRunLoading(true);
     setRunError(null);
-    const cmd = history[runIdx].response;
+    const commandToRun = history[runIdx].response;
+
     try {
       const res = await fetch(RUN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: cmd }),
+        body: JSON.stringify({ command: commandToRun, cwd }), // Передаем CWD
       });
       const data = await res.json();
-      setHistory((h) =>
-        h.map((item, idx) =>
-          idx === runIdx ? { ...item, runResult: data } : item
-        )
-      );
-      if (data.cwd) setCwd(data.cwd);
-      setRunIdx(null);
-      setTimeout(() => { inputRef.current?.focus(); }, 0);
-    } catch {
-      setRunError('Ошибка выполнения команды');
+      if (data.error) {
+        setRunError(data.error);
+      } else {
+        // Обновляем историю с результатом выполнения
+        setHistory((h) =>
+          h.map((item, index) => (index === runIdx ? { ...item, runResult: data } : item))
+        );
+        if (data.cwd) setCwd(data.cwd); // Обновляем CWD
+        setRunIdx(null); // Закрываем модальное окно
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setRunError(errorMsg);
+    } finally {
+      setRunLoading(false);
     }
-    setRunLoading(false);
   };
 
   const handleRunCancel = () => {
@@ -345,25 +359,30 @@ const Terminal: React.FC = () => {
   };
 
   // Функция отправки сообщения в чат
-  function handleChatSend() {
+  async function handleChatSend() {
     if (!chatInput.trim()) return;
-    const userMsg = { role: 'user' as const, text: chatInput };
-    setChatHistory(h => [...h, userMsg]);
+    const prompt = chatInput;
     setChatInput('');
-    // Системный промпт для чата
-    const chatSystemPrompt = 'Ты — дружелюбный AI-ассистент. Всегда отвечай на том языке на котором тебя спрашивают, понятно и кратко. Не ограничивайся терминальными командами, помогай по любым вопросам.';
-    fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: userMsg.text, model, system_prompt: chatSystemPrompt }),
-    })
-      .then(r => r.json())
-      .then(data => {
-        setChatHistory(h => [...h, { role: 'ai', text: data.response || data.error || 'Ошибка' }]);
-      })
-      .catch(() => {
-        setChatHistory(h => [...h, { role: 'ai', text: 'Ошибка соединения с backend' }]);
+    setChatHistory((h) => [...h, { role: 'user', text: prompt }]);
+    setLoading(true);
+    try {
+      const res = await fetch(ASK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          model,
+          // Тут можно передать другой system_prompt для чата, если нужно
+        }),
       });
+      const data = await res.json();
+      setChatHistory((h) => [...h, { role: 'ai', text: data.response || data.error }]);
+    } catch (error) {
+      setChatHistory(h => [...h, { role: 'ai', text: 'Ошибка соединения с backend' }]);
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (mode === 'chat') {
