@@ -42,6 +42,151 @@ const modelOptions = [
   { value: 'gpt-4o', label: 'GPT 4o', premium: true },
 ];
 
+// Компонент выбора модели
+const ModelDropdown: React.FC<{
+  model: string;
+  setModel: (m: string) => void;
+  showModelDropdown: boolean;
+  setShowModelDropdown: (v: boolean) => void;
+}> = ({ model, setModel, showModelDropdown, setShowModelDropdown }) => (
+  <div style={{ position: 'relative', minWidth: 220 }}>
+    <button
+      onClick={() => setShowModelDropdown(!showModelDropdown)}
+      style={{
+        background: '#232526',
+        color: '#e5e5e5',
+        border: '1.5px solid #23272a',
+        borderRadius: 6,
+        fontSize: 15,
+        padding: '6px 14px',
+        fontFamily: 'monospace',
+        fontWeight: 600,
+        width: '100%',
+        textAlign: 'left',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        cursor: 'pointer',
+        position: 'relative',
+        minHeight: 36,
+      }}
+    >
+      <span>{modelOptions.find(opt => opt.value === model)?.label || model}</span>
+      {modelOptions.find(opt => opt.value === model)?.premium && (
+        <a
+          href="https://t.me/JustFW"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={e => e.stopPropagation()}
+          style={{ display: 'flex', alignItems: 'center', marginLeft: 6 }}
+          title="Премиум модель — узнать больше в Telegram"
+        >
+          <DiamondIcon style={{ color: '#7dd3fc', fontSize: 18 }} />
+        </a>
+      )}
+      <span style={{ marginLeft: 'auto', color: '#7dd3fc', fontSize: 16, fontWeight: 700, userSelect: 'none' }}>▼</span>
+    </button>
+    {showModelDropdown && (
+      <div
+        style={{
+          position: 'absolute',
+          top: '110%',
+          left: 0,
+          width: '100%',
+          background: '#18181b',
+          border: '1.5px solid #23272a',
+          borderRadius: 8,
+          boxShadow: '0 4px 24px 0 rgba(31,38,135,0.18)',
+          zIndex: 100,
+          marginTop: 4,
+          overflow: 'hidden',
+        }}
+      >
+        {modelOptions.map(opt => (
+          opt.premium ? (
+            <a
+              key={opt.value}
+              href="https://t.me/JustFW"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                fontSize: 15,
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                color: '#facc15',
+                background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
+                cursor: 'pointer',
+                opacity: 0.7,
+                position: 'relative',
+                userSelect: 'none',
+                textDecoration: 'none',
+              }}
+              title="Премиум модель — узнать больше в Telegram"
+              onClick={() => setShowModelDropdown(false)}
+            >
+              <span>{opt.label}</span>
+              <span style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
+                backgroundSize: '400% 400%',
+                padding: 1.5,
+                animation: 'premium-gradient-anim 2.5s linear infinite',
+                boxSizing: 'border-box',
+                border: '1.5px solid transparent',
+              }}>
+                <span style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 16,
+                  height: 16,
+                  borderRadius: '50%',
+                  background: '#f9fafb',
+                }}>
+                  <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
+                </span>
+              </span>
+            </a>
+          ) :
+            <div
+              key={opt.value}
+              onClick={() => {
+                setModel(opt.value);
+                setShowModelDropdown(false);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                fontSize: 15,
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                color: '#e5e5e5',
+                background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
+                cursor: 'pointer',
+                opacity: 1,
+                position: 'relative',
+                userSelect: 'none',
+              }}
+            >
+              <span>{opt.label}</span>
+            </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+
 const Terminal: React.FC = () => {
   const [history, setHistory] = useState<
     { prompt: string; response: string; runResult?: { stdout: string; stderr: string; returncode: number } | null }[]
@@ -109,10 +254,11 @@ const Terminal: React.FC = () => {
         if (data.cwd) setCwd(data.cwd);
       } else {
         // AI режим
+        const terminalSystemPrompt = 'Ты — терминальный AI-ассистент. Всегда отвечай только терминальными командами для Mac/Linux/Windows, без пояснений, на языке пользователя. Если команда опасна — предупреди.';
         const res = await fetch(API_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, model }),
+          body: JSON.stringify({ prompt, model, system_prompt: terminalSystemPrompt }),
         });
         const data = await res.json();
         setHistory((h) => {
@@ -204,11 +350,12 @@ const Terminal: React.FC = () => {
     const userMsg = { role: 'user' as const, text: chatInput };
     setChatHistory(h => [...h, userMsg]);
     setChatInput('');
-    // Отправка запроса к AI (используем API_URL, model)
+    // Системный промпт для чата
+    const chatSystemPrompt = 'Ты — дружелюбный AI-ассистент. Всегда отвечай на том языке на котором тебя спрашивают, понятно и кратко. Не ограничивайся терминальными командами, помогай по любым вопросам.';
     fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: userMsg.text, model }),
+      body: JSON.stringify({ prompt: userMsg.text, model, system_prompt: chatSystemPrompt }),
     })
       .then(r => r.json())
       .then(data => {
@@ -232,7 +379,7 @@ const Terminal: React.FC = () => {
         padding: 0,
         margin: 0,
       }}>
-        {/* Верхняя панель с кнопкой возврата */}
+        {/* Верхняя панель с кнопкой возврата и выбором модели */}
         <div style={{ position: 'absolute', top: 18, left: 32, zIndex: 110, display: 'flex', alignItems: 'center', gap: 10 }}>
           <Button
             variant="text"
@@ -258,6 +405,9 @@ const Terminal: React.FC = () => {
             <TerminalOutlinedIcon style={{ fontSize: 22, color: '#7dd3fc' }} />
           </Button>
           <span style={{ fontWeight: 700, fontSize: 20, color: '#7dd3fc', letterSpacing: 1 }}>Чат с нейросетью</span>
+        </div>
+        <div style={{ position: 'absolute', top: 18, right: 32, zIndex: 100, minWidth: 220, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} />
         </div>
         {/* История чата */}
         <div style={{
@@ -442,143 +592,7 @@ const Terminal: React.FC = () => {
         alignItems: 'center',
         gap: 16,
       }}>
-        <div style={{ position: 'relative', minWidth: 220 }}>
-          <button
-            onClick={() => setShowModelDropdown(v => !v)}
-            style={{
-              background: '#232526',
-              color: '#e5e5e5',
-              border: '1.5px solid #23272a',
-              borderRadius: 6,
-              fontSize: 15,
-              padding: '6px 14px',
-              fontFamily: 'monospace',
-              fontWeight: 600,
-              width: '100%',
-              textAlign: 'left',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              cursor: 'pointer',
-              position: 'relative',
-              minHeight: 36,
-            }}
-          >
-            <span>{modelOptions.find(opt => opt.value === model)?.label || model}</span>
-            {modelOptions.find(opt => opt.value === model)?.premium && (
-              <a
-                href="https://t.me/JustFW"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
-                style={{ display: 'flex', alignItems: 'center', marginLeft: 6 }}
-                title="Премиум модель — узнать больше в Telegram"
-              >
-                <DiamondIcon style={{ color: '#7dd3fc', fontSize: 18 }} />
-              </a>
-            )}
-            <span style={{ marginLeft: 'auto', color: '#7dd3fc', fontSize: 16, fontWeight: 700, userSelect: 'none' }}>▼</span>
-          </button>
-          {showModelDropdown && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '110%',
-                left: 0,
-                width: '100%',
-                background: '#18181b',
-                border: '1.5px solid #23272a',
-                borderRadius: 8,
-                boxShadow: '0 4px 24px 0 rgba(31,38,135,0.18)',
-                zIndex: 100,
-                marginTop: 4,
-                overflow: 'hidden',
-              }}
-            >
-              {modelOptions.map(opt => (
-                opt.premium ? (
-                  <a
-                    key={opt.value}
-                    href="https://t.me/JustFW"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '10px 16px',
-                      fontSize: 15,
-                      fontFamily: 'monospace',
-                      fontWeight: 600,
-                      color: '#facc15',
-                      background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
-                      cursor: 'pointer',
-                      opacity: 0.7,
-                      position: 'relative',
-                      userSelect: 'none',
-                      textDecoration: 'none',
-                    }}
-                    title="Премиум модель — узнать больше в Telegram"
-                    onClick={() => setShowModelDropdown(false)}
-                  >
-                    <span>{opt.label}</span>
-                    <span style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: 22,
-                      height: 22,
-                      borderRadius: '50%',
-                      background: 'linear-gradient(270deg, #facc15, #7dd3fc, #a3e635, #facc15)',
-                      backgroundSize: '400% 400%',
-                      padding: 1.5,
-                      animation: 'premium-gradient-anim 2.5s linear infinite',
-                      boxSizing: 'border-box',
-                      border: '1.5px solid transparent',
-                    }}>
-                      <span style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 16,
-                        height: 16,
-                        borderRadius: '50%',
-                        background: '#f9fafb',
-                      }}>
-                        <WorkspacePremiumIcon style={{ color: '#eab308', fontSize: 15 }} />
-                      </span>
-                    </span>
-                  </a>
-                ) : (
-                  <div
-                    key={opt.value}
-                    onClick={() => {
-                      setModel(opt.value);
-                      setShowModelDropdown(false);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '10px 16px',
-                      fontSize: 15,
-                      fontFamily: 'monospace',
-                      fontWeight: 600,
-                      color: '#e5e5e5',
-                      background: model === opt.value ? 'rgba(125,211,252,0.08)' : 'transparent',
-                      cursor: 'pointer',
-                      opacity: 1,
-                      position: 'relative',
-                      userSelect: 'none',
-                    }}
-                  >
-                    <span>{opt.label}</span>
-                  </div>
-                )
-              ))}
-            </div>
-          )}
-        </div>
+        <ModelDropdown model={model} setModel={setModel} showModelDropdown={showModelDropdown} setShowModelDropdown={setShowModelDropdown} />
         {/* Кнопка чата */}
         <button
           onClick={() => setMode('chat')}
