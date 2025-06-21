@@ -19,7 +19,6 @@ import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
-const TERMINAL_URL = 'http://127.0.0.1:8000/terminal';
 const ASK_URL = 'http://127.0.0.1:8000/ask';
 const RUN_URL = 'http://127.0.0.1:8000/run';
 
@@ -287,63 +286,57 @@ const Terminal: React.FC = () => {
     localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
   }, [favorites]);
 
-  const getAuthHeaders = (): HeadersInit => {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
-  };
-
   const handleSend = async () => {
-    if (!input.trim()) return;
-    setLoading(true);
-    const prompt = input;
+    if (!input.trim() || loading) return;
+
+    const currentInput = input;
     setInput('');
+    setLoading(true);
+
     try {
       if (manualMode) {
         // Ручной режим: отправляем команду напрямую
         const res = await fetch(RUN_URL, {
           method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ command: prompt, cwd }),
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ command: currentInput, cwd }),
         });
         const data = await res.json();
-        if(data.cwd) setCwd(data.cwd); // Обновляем CWD
+        if (data.cwd) setCwd(data.cwd); // Обновляем CWD
         setHistory((h) => [
           ...h,
           {
-            prompt,
+            prompt: currentInput,
             response: `(Ручной ввод)`,
             runResult: data,
           },
         ]);
       } else {
         // AI режим: получаем команду от AI
-        const res = await fetch(TERMINAL_URL, {
+        const res = await fetch(ASK_URL, {
           method: 'POST',
-          headers: getAuthHeaders(),
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
-            prompt,
+            prompt: currentInput,
             model,
-            mode: 'ai', // Явно указываем режим
             cwd, // Передаем CWD для контекста
           }),
         });
         const data = await res.json();
-        setHistory((h) => [...h, { prompt, response: data.response || data.error }]);
+        console.error(data);
+        setHistory((h) => [...h, { prompt: currentInput, response: data.response || data.error }]);
       }
     } catch (error) {
-      setHistory((h) => {
-        const newHistory = [...h, { prompt, response: 'Ошибка соединения с backend' }];
-        return newHistory.slice(-10);
-      });
       console.error(error);
+      setHistory((h) => {
+        const newHistory = [...h, { prompt: currentInput, response: 'Ошибка соединения с backend' }];
+        return newHistory;
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -366,8 +359,9 @@ const Terminal: React.FC = () => {
     try {
       const res = await fetch(RUN_URL, {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ command: commandToRun, cwd }), // Передаем CWD
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ command: commandToRun, cwd }),
       });
       const data = await res.json();
       if (data.error) {
@@ -402,9 +396,20 @@ const Terminal: React.FC = () => {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+        await fetch('http://127.0.0.1:8000/logout', {
+            method: 'POST',
+            credentials: 'include',
+        });
+    } catch (error) {
+        console.error("Logout request failed:", error);
+    }
+    
+    // Очищаем локальные данные и перезагружаем страницу для чистоты состояния
     setLoggedInUser(null);
     localStorage.removeItem('loggedInUser');
+    window.location.reload(); 
     handleMenuClose();
   };
 
@@ -422,6 +427,7 @@ const Terminal: React.FC = () => {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -432,16 +438,12 @@ const Terminal: React.FC = () => {
           setAuthError('Регистрация успешна! Теперь вы можете войти.');
         } else {
           // После успешного входа
-          if (data.access_token) {
-            setLoggedInUser(data.user);
-            localStorage.setItem('loggedInUser', JSON.stringify(data.user));
-            localStorage.setItem('accessToken', data.access_token); // Сохраняем токен
-            setShowLogin(false);
-            setEmail('');
-            setPassword('');
-          } else {
-             setAuthError(data.error || 'Ошибка входа: токен не получен.');
-          }
+          setLoggedInUser(data.user);
+          localStorage.setItem('loggedInUser', JSON.stringify(data.user));
+          setShowLogin(false);
+          setEmail('');
+          setPassword('');
+          // Токен теперь в cookie, можно перезагрузить страницу или обновить состояние
         }
       } else {
         setAuthError(data.error || 'Произошла неизвестная ошибка');
@@ -480,7 +482,8 @@ const Terminal: React.FC = () => {
     try {
       const res = await fetch(ASK_URL, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           prompt,
           model,
