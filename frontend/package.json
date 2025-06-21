@@ -2,6 +2,9 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
+  "description": "Torexxx AI Terminal",
+  "author": "SkvorikovCode",
+  "main": "electron-main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +13,8 @@
     "preview": "vite preview",
     "electron": "electron electron-main.cjs",
     "start": "concurrently \"npm run dev\" \"npm run electron\"",
-    "test": "vitest"
+    "test": "vitest",
+    "pack": "npm run build && electron-builder"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -19,7 +23,6 @@
     "@mui/material": "^7.1.1",
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3",
-    "electron": "^36.4.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -31,6 +34,8 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
@@ -40,5 +45,19 @@
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5",
     "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.torexxx.app",
+    "productName": "Torexxx",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron-main.cjs"
+    ],
+    "mac": {
+      "target": "dmg"
+    }
   }
 }
